@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>ReShape Egypt admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --primary: #0b5d3b; --accent: #f2c230; --ink: #15231c; --muted: #5b6b62; --line: #dde3da; --bg: #f4f6f2; --danger: #b3261e; --ok: #1e7a46; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Alexandria", "Segoe UI", Tahoma, Arial, sans-serif; background: var(--bg); color: var(--ink); font-size: 15px; line-height: 1.55; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button { font: inherit; cursor: pointer; }
+  .btn { background: var(--primary); color: #fff; border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 700; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); text-decoration: none; display: inline-block; font-size: .9rem; }
+  .btn.small { padding: 5px 10px; font-size: .82rem; font-weight: 500; }
+  .btn.danger { background: #fff; color: var(--danger); border: 1px solid #efc9c5; }
+
+  /* Login */
+  #login { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+  .login-box { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 30px; width: 100%; max-width: 360px; }
+  .login-box img { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; margin-bottom: 14px; }
+  .login-box h1 { font-size: 1.25rem; margin-bottom: 18px; }
+  .login-box .btn { width: 100%; margin-top: 14px; padding: 11px; }
+  #loginErr { color: var(--danger); font-size: .88rem; margin-top: 10px; min-height: 1.2em; }
+
+  /* Editor */
+  #editor { display: none; }
+  .top { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid var(--line); }
+  .top-in { max-width: 1200px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .top h1 { font-size: 1.05rem; margin-inline-end: auto; }
+  #status { font-size: .85rem; color: var(--muted); }
+  #status.dirty { color: #a86b12; font-weight: 700; }
+  #status.saved { color: var(--ok); }
+  .layout { max-width: 1200px; margin: 0 auto; padding: 22px 20px 80px; display: grid; grid-template-columns: 210px 1fr; gap: 24px; }
+  .side { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 76px; align-self: start; }
+  .side button { text-align: start; background: none; border: 0; padding: 9px 12px; border-radius: 8px; color: var(--muted); font-weight: 500; }
+  .side button.on { background: #fff; color: var(--ink); font-weight: 700; box-shadow: inset 3px 0 0 var(--primary); }
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    .side { position: static; flex-direction: row; overflow-x: auto; }
+    .side button { white-space: nowrap; }
+  }
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+  .panel h2 { font-size: 1.2rem; margin-bottom: 4px; }
+  .panel .hint { color: var(--muted); font-size: .88rem; margin-bottom: 20px; max-width: 70ch; }
+  .rows { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+  .fld.wide { grid-column: 1 / -1; }
+  @media (max-width: 640px) { .rows { grid-template-columns: 1fr; } }
+  label { display: block; font-size: .82rem; font-weight: 700; margin-bottom: 4px; }
+  label small { font-weight: 400; color: var(--muted); }
+  input, textarea, select { width: 100%; font: inherit; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+  input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  input[type=color] { padding: 2px; height: 40px; }
+  input[type=checkbox] { width: auto; transform: scale(1.2); margin-inline-end: 8px; vertical-align: middle; }
+  .check label { display: flex; align-items: center; font-weight: 600; font-size: .9rem; cursor: pointer; }
+  [dir=rtl] { font-family: "Alexandria", Tahoma, Arial, sans-serif; }
+  .item { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 14px; background: #fbfcfa; }
+  .item-head { display: flex; gap: 6px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+  .item-head b { margin-inline-end: auto; }
+  .preview { max-height: 90px; border-radius: 8px; margin-top: 8px; border: 1px solid var(--line); }
+  .sub-title { font-size: 1rem; margin: 26px 0 10px; }
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 20px; border-radius: 8px; display: none; z-index: 50; max-width: 90vw; }
+  #toast.err { background: var(--danger); }
+  #toast.good { background: var(--ok); }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form class="login-box" id="loginForm">
+    <img src="https://res.cloudinary.com/sxxuxdzy/image/upload/v1785748648/Reshape_Logo_pbcbku.jpg" alt="">
+    <h1>ReShape Egypt admin</h1>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <button class="btn" type="submit" id="loginBtn">Sign in</button>
+    <p id="loginErr" role="alert"></p>
+  </form>
+</div>
+
+<div id="editor">
+  <div class="top"><div class="top-in">
+    <h1>ReShape Egypt admin</h1>
+    <span id="status"></span>
+    <a class="btn ghost" id="sheetLink" target="_blank" rel="noopener">View requests</a>
+    <a class="btn ghost" href="index.html" target="_blank" rel="noopener">Open site</a>
+    <button class="btn" id="saveBtn" type="button">Save changes</button>
+    <button class="btn ghost" id="logoutBtn" type="button">Sign out</button>
+  </div></div>
+  <div class="layout">
+    <nav class="side" id="side"></nav>
+    <div class="panel" id="panel"></div>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="config.js"></script>
+<script>
+const API = window.RESHAPE_API || "";
+let C = null, PW = "", dirty = false, current = "brand", uid = 0;
+
+// ---------------- helpers ----------------
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  Object.entries(attrs || {}).forEach(([k, v]) => {
+    if (k === "on") Object.entries(v).forEach(([ev, fn]) => e.addEventListener(ev, fn));
+    else if (v !== undefined && v !== null && v !== false) e.setAttribute(k, v === true ? "" : v);
+  });
+  kids.flat().forEach(k => e.append(k && k.nodeType ? k : document.createTextNode(k == null ? "" : k)));
+  return e;
+}
+function get(path) { return path.reduce((o, k) => (o == null ? undefined : o[k]), C); }
+function set(path, v) {
+  let o = C;
+  for (let i = 0; i < path.length - 1; i++) {
+    if (o[path[i]] == null) o[path[i]] = typeof path[i + 1] === "number" ? [] : {};
+    o = o[path[i]];
+  }
+  o[path[path.length - 1]] = v;
+  markDirty(true);
+}
+function newId(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function markDirty(d) {
+  dirty = d;
+  const s = document.getElementById("status");
+  s.textContent = d ? "Unsaved changes" : "All changes saved";
+  s.className = d ? "dirty" : "saved";
+}
+let tt;
+function toast(m, k) {
+  const t = document.getElementById("toast");
+  t.textContent = m; t.className = k || ""; t.style.display = "block";
+  clearTimeout(tt); tt = setTimeout(() => t.style.display = "none", k === "err" ? 7000 : 3000);
+}
+async function post(body) {
+  const r = await fetch(API, { method: "POST", body: JSON.stringify(body) });
+  return r.json();
+}
+
+// ---------------- field builders ----------------
+function field(label, path, opt) {
+  opt = opt || {};
+  const id = "f" + (++uid), v = get(path);
+  let input;
+  if (opt.type === "checkbox") {
+    input = el("input", { id, type: "checkbox" });
+    input.checked = v !== false;
+    input.addEventListener("change", () => set(path, input.checked));
+    return el("div", { class: "fld check" + (opt.wide ? " wide" : "") }, el("label", { for: id }, input, label));
+  }
+  if (opt.type === "textarea") input = el("textarea", { id, rows: opt.rows || 3, dir: opt.dir });
+  else input = el("input", { id, type: opt.type || "text", dir: opt.dir, placeholder: opt.placeholder });
+  input.value = v == null ? "" : v;
+  input.addEventListener("input", () => {
+    set(path, opt.type === "number" ? (input.value === "" ? "" : Number(input.value)) : input.value);
+    if (opt.onInput) opt.onInput(input.value);
+  });
+  const lab = el("label", { for: id }, label, opt.help ? el("small", {}, " " + opt.help) : "");
+  return el("div", { class: "fld" + (opt.wide ? " wide" : "") }, lab, input);
+}
+// English + Arabic side by side
+function bi(label, path, opt) {
+  opt = opt || {};
+  return [
+    field(label + " (English)", path.concat("en"), { type: opt.type, rows: opt.rows }),
+    field(label + " (عربي)", path.concat("ar"), { type: opt.type, rows: opt.rows, dir: "rtl" })
+  ];
+}
+function imageField(label, path, help) {
+  const img = el("img", { class: "preview", alt: "" });
+  const show = v => { if (/^https?:\/\//.test(v || "")) { img.src = v; img.style.display = "block"; } else img.style.display = "none"; };
+  const f = field(label, path, { wide: true, help, placeholder: "https://…", onInput: show });
+  f.append(img); show(get(path));
+  return f;
+}
+function rows(...kids) { return el("div", { class: "rows" }, kids.flat()); }
+
+// Repeating items (groups, events, questions…)
+function list(path, opt) {
+  if (!Array.isArray(get(path))) set(path, []);
+  const arr = get(path);
+  const box = el("div");
+  arr.forEach((item, i) => {
+    const head = el("div", { class: "item-head" },
+      el("b", {}, opt.title(item, i)),
+      el("button", { class: "btn ghost small", type: "button", title: "Move up", on: { click: () => move(i, -1) } }, "Up"),
+      el("button", { class: "btn ghost small", type: "button", title: "Move down", on: { click: () => move(i, 1) } }, "Down"),
+      el("button", { class: "btn danger small", type: "button", on: { click: () => {
+        if (confirm("Delete this item?")) { arr.splice(i, 1); markDirty(true); renderPanel(); }
+      } } }, "Delete"));
+    box.append(el("div", { class: "item" }, head, opt.body(path.concat(i), item)));
+  });
+  box.append(el("button", { class: "btn ghost", type: "button", on: { click: () => { arr.push(opt.make()); markDirty(true); renderPanel(); } } }, opt.addLabel));
+  function move(i, d) {
+    const j = i + d;
+    if (j < 0 || j >= arr.length) return;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    markDirty(true); renderPanel();
+  }
+  return box;
+}
+const empty = () => ({ en: "", ar: "" });
+
+// ---------------- sections ----------------
+const SECTIONS = {
+  brand: ["Logo, colours & contact", () => [
+    hint("The name, logo and contact details shown on every part of the page."),
+    rows(
+      field("Academy name", ["brand", "name"]),
+      field("WhatsApp number", ["brand", "whatsapp"], { help: "with country code, e.g. 201001234567" }),
+      imageField("Logo URL", ["brand", "logo"]),
+      field("Main colour", ["brand", "primary"], { type: "color" }),
+      field("Highlight colour", ["brand", "accent"], { type: "color" }),
+      bi("Currency", ["brand", "currency"]),
+      field("Phone", ["brand", "phone"]),
+      field("Email", ["brand", "email"], { type: "email" }),
+      bi("Address", ["brand", "address"]),
+      field("Google Maps link", ["brand", "mapUrl"], { wide: true }),
+      field("Instagram link", ["brand", "instagram"]),
+      field("Facebook link", ["brand", "facebook"])
+    )
+  ]],
+  hero: ["Top of the page", () => [
+    hint("The first thing visitors see. Keep the title short."),
+    rows(bi("Title", ["hero", "title"]), bi("Sentence under the title", ["hero", "subtitle"], { type: "textarea", rows: 2 }),
+         imageField("Background photo (optional)", ["hero", "image"], "leave empty to use the pitch design"))
+  ]],
+  features: ["Why us", () => [
+    hint("Short reasons to choose the academy. Four works best."),
+    list(["features"], {
+      title: (x, i) => "Reason " + (i + 1),
+      make: () => ({ id: newId("f"), title: empty(), text: empty() }),
+      addLabel: "Add a reason",
+      body: p => rows(bi("Title", p.concat("title")), bi("Text", p.concat("text"), { type: "textarea", rows: 2 }))
+    })
+  ]],
+  academy: ["Academy", () => [
+    hint("Groups, times and prices for the weekly academy."),
+    rows(field("Registration is open", ["academy", "open"], { type: "checkbox", wide: true }),
+         bi("Introduction", ["academy", "intro"], { type: "textarea", rows: 2 })),
+    el("h3", { class: "sub-title" }, "Groups"),
+    list(["academy", "groups"], {
+      title: x => "Ages " + (x.ages || "?"),
+      make: () => ({ id: newId("g"), ages: "", days: empty(), time: "", location: empty(), price: "", period: { en: "per month", ar: "شهريًا" } }),
+      addLabel: "Add a group",
+      body: p => rows(field("Ages", p.concat("ages"), { help: "e.g. 5–7" }), field("Time", p.concat("time"), { help: "e.g. 5:00 PM" }),
+                      bi("Days", p.concat("days")), bi("Place", p.concat("location")),
+                      field("Price", p.concat("price"), { type: "number" }), el("div"), bi("Price is", p.concat("period")))
+    })
+  ]],
+  schools: ["School events", () => [
+    hint("The kinds of events schools can request. They also appear in the school form."),
+    rows(bi("Introduction", ["schools", "intro"], { type: "textarea", rows: 2 })),
+    el("h3", { class: "sub-title" }, "Event types"),
+    list(["schools", "eventTypes"], {
+      title: x => (x.name && x.name.en) || "New event type",
+      make: () => ({ id: newId("s"), name: empty(), desc: empty() }),
+      addLabel: "Add an event type",
+      body: p => rows(bi("Name", p.concat("name")), bi("Description", p.concat("desc"), { type: "textarea", rows: 2 }))
+    })
+  ]],
+  summer: ["Summer events", () => [
+    hint("Untick \"Registration is open\" when an event is full. It stays on the page but people can't sign up."),
+    rows(bi("Introduction", ["summer", "intro"], { type: "textarea", rows: 2 })),
+    el("h3", { class: "sub-title" }, "Events"),
+    list(["summer", "events"], {
+      title: x => (x.name && x.name.en) || "New event",
+      make: () => ({ id: newId("e"), name: empty(), dates: empty(), ages: "", price: "", desc: empty(), open: true }),
+      addLabel: "Add an event",
+      body: p => rows(field("Registration is open", p.concat("open"), { type: "checkbox", wide: true }),
+                      bi("Name", p.concat("name")), bi("Dates", p.concat("dates")),
+                      field("Ages", p.concat("ages")), field("Price", p.concat("price"), { type: "number" }),
+                      bi("Description", p.concat("desc"), { type: "textarea", rows: 2 }))
+    })
+  ]],
+  faq: ["Questions", () => [
+    hint("Questions parents often ask."),
+    list(["faq"], {
+      title: (x, i) => "Question " + (i + 1),
+      make: () => ({ id: newId("q"), q: empty(), a: empty() }),
+      addLabel: "Add a question",
+      body: p => rows(bi("Question", p.concat("q")), bi("Answer", p.concat("a"), { type: "textarea", rows: 2 }))
+    })
+  ]],
+  gallery: ["Photos", () => [
+    hint("Upload photos to Cloudinary (or any image host) and paste each link here."),
+    list(["gallery"], {
+      title: (x, i) => "Photo " + (i + 1),
+      make: () => "",
+      addLabel: "Add a photo",
+      body: p => rows(imageField("Photo URL", p))
+    })
+  ]]
+};
+function hint(t) { return el("p", { class: "hint" }, t); }
+
+function renderSide() {
+  const side = document.getElementById("side");
+  side.innerHTML = "";
+  Object.keys(SECTIONS).forEach(k => side.append(el("button", {
+    type: "button", class: k === current ? "on" : "", on: { click: () => { current = k; renderSide(); renderPanel(); } }
+  }, SECTIONS[k][0])));
+}
+function renderPanel() {
+  const p = document.getElementById("panel");
+  p.innerHTML = "";
+  p.append(el("h2", {}, SECTIONS[current][0]), ...SECTIONS[current][1]().flat());
+}
+
+// ---------------- login / save ----------------
+async function login(pw) {
+  const btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
+  btn.disabled = true; btn.textContent = "Signing in…"; err.textContent = "";
+  try {
+    const j = await post({ action: "login", password: pw });
+    if (!j.ok) throw new Error(j.error);
+    PW = pw; C = j.content;
+    try { sessionStorage.setItem("reshape_pw", pw); } catch (e) {}
+    document.getElementById("sheetLink").href = j.sheetUrl;
+    document.getElementById("login").style.display = "none";
+    document.getElementById("editor").style.display = "block";
+    markDirty(false); renderSide(); renderPanel();
+  } catch (e) {
+    try { sessionStorage.removeItem("reshape_pw"); } catch (x) {}
+    err.textContent = e instanceof TypeError ? "Can't reach the server. Check config.js and your internet." : e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = "Sign in";
+  }
+}
+
+document.getElementById("loginForm").addEventListener("submit", e => { e.preventDefault(); login(document.getElementById("pw").value); });
+
+document.getElementById("saveBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("saveBtn");
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    const j = await post({ action: "saveContent", password: PW, content: C });
+    if (!j.ok) {
+      if (j.auth) { toast(j.error, "err"); return; }
+      throw new Error(j.error);
+    }
+    markDirty(false);
+    toast("Saved. Visitors will see the changes within a minute.", "good");
+  } catch (e) {
+    toast(e instanceof TypeError ? "Can't reach the server. Your changes are not saved yet." : "Not saved: " + e.message, "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "Save changes";
+  }
+});
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  if (dirty && !confirm("You have unsaved changes. Sign out anyway?")) return;
+  try { sessionStorage.removeItem("reshape_pw"); } catch (e) {}
+  dirty = false; location.reload();
+});
+
+window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+(function start() {
+  if (!API || API.indexOf("PASTE_") === 0) {
+    document.getElementById("loginErr").textContent = "Paste your Apps Script web app URL in config.js first.";
+    document.getElementById("loginBtn").disabled = true;
+    return;
+  }
+  let saved = "";
+  try { saved = sessionStorage.getItem("reshape_pw") || ""; } catch (e) {}
+  if (saved) login(saved);
+})();
+</script>
+</body>
+</html>

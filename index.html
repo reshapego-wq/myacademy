@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReShape Egypt</title>
+<meta name="description" content="ReShape Egypt football academy, school events and summer activities.">
+<link rel="icon" href="https://res.cloudinary.com/sxxuxdzy/image/upload/v1785748648/Reshape_Logo_pbcbku.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #0b5d3b;   /* changed from the admin page */
+    --accent: #f2c230;    /* changed from the admin page */
+    --chalk: #f6f7f2;
+    --ink: #15231c;
+    --muted: #56665d;
+    --line: #dde3da;
+    --surface: #ffffff;
+    --danger: #b3261e;
+    --ok: #1e7a46;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    font-family: "Alexandria", "Segoe UI", Tahoma, Arial, sans-serif;
+    background: var(--chalk); color: var(--ink);
+    font-size: 16px; line-height: 1.6;
+  }
+  html[dir="rtl"] body { line-height: 1.8; }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 22px; }
+
+  /* ---------- Top bar ---------- */
+  .bar { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .bar .wrap { display: flex; align-items: center; gap: 18px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 800; font-size: 1.05rem; }
+  .brand img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+  .links { display: flex; gap: 22px; margin-inline-start: auto; }
+  .links a { text-decoration: none; font-size: .92rem; font-weight: 500; color: var(--muted); }
+  .links a:hover { color: var(--ink); }
+  .lang { border: 1.5px solid var(--ink); background: transparent; color: var(--ink); font: inherit; font-weight: 700;
+          font-size: .88rem; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+  .lang:hover { background: var(--ink); color: #fff; }
+  @media (max-width: 820px) { .links { display: none; } .lang { margin-inline-start: auto; } }
+
+  /* ---------- Hero ---------- */
+  .hero { position: relative; overflow: hidden; background: var(--primary); color: #fff; padding: 72px 0 64px; }
+  .hero.has-img { background-size: cover; background-position: center; }
+  .pitch { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .pitch * { fill: none; stroke: rgba(255,255,255,.16); stroke-width: 2; }
+  .hero .wrap { position: relative; }
+  .hero h1 { font-size: clamp(2.1rem, 5.6vw, 4.1rem); line-height: 1.06; font-weight: 800; max-width: 17ch; letter-spacing: -0.01em; }
+  html[dir="rtl"] .hero h1 { line-height: 1.3; letter-spacing: 0; }
+  .hero .lead { font-size: clamp(1.02rem, 2vw, 1.2rem); max-width: 52ch; margin-top: 18px; opacity: .92; }
+
+  .paths { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 44px; }
+  .path { display: block; text-decoration: none; padding: 20px 22px 22px; border-radius: 14px;
+          background: rgba(255,255,255,.07); border: 1.5px solid rgba(255,255,255,.28); transition: border-color .2s, background .2s; }
+  .path:hover { border-color: var(--accent); background: rgba(255,255,255,.12); }
+  .path small { display: block; font-size: .8rem; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+  .path b { display: block; font-size: 1.18rem; line-height: 1.3; }
+  .path span { display: block; font-size: .9rem; opacity: .85; margin-top: 6px; }
+  @media (max-width: 820px) { .paths { grid-template-columns: 1fr; } .hero { padding: 48px 0 40px; } }
+
+  /* ---------- Sections ---------- */
+  section.block { padding: 76px 0; }
+  section.block + section.block { border-top: 1px solid var(--line); }
+  .sec-head { max-width: 640px; margin-bottom: 34px; }
+  .sec-head h2 { font-size: clamp(1.6rem, 3.4vw, 2.3rem); line-height: 1.15; font-weight: 800; }
+  html[dir="rtl"] .sec-head h2 { line-height: 1.4; }
+  .sec-head p { color: var(--muted); margin-top: 10px; font-size: 1.04rem; }
+
+  .features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+  .feature { border-top: 4px solid var(--accent); padding-top: 14px; }
+  .feature h3 { font-size: 1.05rem; margin-bottom: 4px; }
+  .feature p { color: var(--muted); font-size: .94rem; }
+  @media (max-width: 900px) { .features { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .features { grid-template-columns: 1fr; } }
+
+  .split { display: grid; grid-template-columns: 1fr 1.05fr; gap: 40px; align-items: start; }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+
+  /* Academy groups */
+  .groups { list-style: none; border-top: 1px solid var(--line); }
+  .groups li { display: grid; grid-template-columns: 96px 1fr auto; gap: 16px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .age { font-weight: 800; font-size: 1.5rem; color: var(--primary); line-height: 1.1; }
+  .age small { display: block; font-size: .72rem; font-weight: 500; color: var(--muted); }
+  .g-info { font-size: .94rem; }
+  .g-info span { display: block; color: var(--muted); font-size: .86rem; }
+  .price { text-align: end; font-weight: 700; white-space: nowrap; }
+  .price small { display: block; font-weight: 400; color: var(--muted); font-size: .8rem; }
+  @media (max-width: 520px) { .groups li { grid-template-columns: 70px 1fr; } .price { grid-column: 2; text-align: start; } }
+
+  /* School event types */
+  .types { list-style: none; display: grid; gap: 14px; }
+  .types li { padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-inline-start: 4px solid var(--primary); border-radius: 10px; }
+  .types b { display: block; }
+  .types span { color: var(--muted); font-size: .92rem; }
+
+  /* Summer events */
+  .events { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-bottom: 40px; }
+  .event { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; }
+  .event .date { color: var(--primary); font-weight: 700; font-size: .9rem; }
+  .event h3 { font-size: 1.25rem; margin: 4px 0 8px; }
+  .event p { color: var(--muted); font-size: .93rem; flex: 1; }
+  .event .meta { display: flex; justify-content: space-between; gap: 10px; margin: 14px 0; font-size: .9rem; }
+  .event .meta b { font-size: 1.05rem; }
+  .event.closed { opacity: .65; }
+  .tag { display: inline-block; font-size: .8rem; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: #eee; color: var(--muted); align-self: flex-start; }
+
+  /* Buttons */
+  .btn { display: inline-block; font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 13px 22px; cursor: pointer;
+         background: var(--accent); color: var(--ink); text-decoration: none; text-align: center; }
+  .btn:hover { filter: brightness(.95); }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .btn.dark { background: var(--primary); color: #fff; }
+  .btn.line { background: transparent; border: 1.5px solid var(--primary); color: var(--primary); }
+
+  /* Forms */
+  .form-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 26px; }
+  .form-card h3 { font-size: 1.3rem; margin-bottom: 2px; }
+  .form-card .note { color: var(--muted); font-size: .84rem; margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .grid .wide { grid-column: 1 / -1; }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } .form-card { padding: 20px; } }
+  label { display: block; font-size: .86rem; font-weight: 600; margin-bottom: 5px; }
+  label .req { color: var(--danger); }
+  input, select, textarea { width: 100%; font: inherit; font-size: .95rem; padding: 11px 13px; border: 1.5px solid var(--line);
+                            border-radius: 9px; background: #fff; color: var(--ink); }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  input.bad, select.bad { border-color: var(--danger); }
+  textarea { resize: vertical; min-height: 80px; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .form-card .btn { width: 100%; margin-top: 20px; }
+  .msg { margin-top: 12px; font-size: .9rem; min-height: 1.3em; }
+  .msg.err { color: var(--danger); }
+  .done { text-align: center; padding: 24px 6px; }
+  .done b { display: block; font-size: 1.25rem; color: var(--ok); margin-bottom: 6px; }
+  .done p { color: var(--muted); margin-bottom: 18px; }
+  .closed-box { background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 24px; color: var(--muted); }
+
+  /* Gallery */
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; }
+
+  /* FAQ */
+  .faq { max-width: 760px; }
+  .faq details { border-bottom: 1px solid var(--line); padding: 16px 0; }
+  .faq summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; font-weight: 400; font-size: 1.4rem; line-height: 1; color: var(--primary); }
+  .faq details[open] summary::after { content: "–"; }
+  .faq p { color: var(--muted); margin-top: 8px; }
+
+  /* Footer */
+  footer { background: var(--primary); color: #fff; padding: 56px 0 90px; }
+  footer h2 { font-size: 1.6rem; margin-bottom: 18px; }
+  .contacts { display: flex; flex-wrap: wrap; gap: 12px; }
+  .contacts a { text-decoration: none; padding: 10px 18px; border: 1.5px solid rgba(255,255,255,.4); border-radius: 999px; font-weight: 600; font-size: .92rem; }
+  .contacts a:hover { border-color: var(--accent); }
+  footer .addr { margin-top: 18px; opacity: .85; }
+  footer .copy { margin-top: 30px; font-size: .8rem; opacity: .6; }
+
+  .wa { position: fixed; bottom: 18px; inset-inline-end: 18px; z-index: 30; background: #25d366; color: #fff; text-decoration: none;
+        font-weight: 700; padding: 12px 18px; border-radius: 999px; box-shadow: 0 6px 18px rgba(0,0,0,.2); font-size: .92rem; }
+
+  .state { padding: 120px 22px; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top"><img id="logo" alt="" src="https://res.cloudinary.com/sxxuxdzy/image/upload/v1785748648/Reshape_Logo_pbcbku.jpg"><span id="brandName">ReShape Egypt</span></a>
+    <nav class="links" id="links"></nav>
+    <button class="lang" id="langBtn" type="button">العربية</button>
+  </div>
+</header>
+
+<main id="app"><div class="state">Loading…</div></main>
+<div id="waSlot"></div>
+
+<script src="config.js"></script>
+<script>
+// ============================================================
+// Fixed interface text in both languages
+// ============================================================
+const T = {
+  en: {
+    nav: { academy: "Academy", schools: "Schools", summer: "Summer", faq: "FAQ" },
+    langBtn: "العربية",
+    paths: {
+      academy: ["For parents", "Join the football academy", "Weekly training in age groups"],
+      schools: ["For schools", "Book an event for your school", "Sports days, tournaments and workshops"],
+      summer:  ["For parents", "Sign up for summer events", "Camps, tournaments and open days"]
+    },
+    why: "Why {name}",
+    academyTitle: "The football academy", schoolsTitle: "Events for schools", summerTitle: "Summer events",
+    galleryTitle: "From the pitch", faqTitle: "Questions parents ask", contactTitle: "Get in touch",
+    ages: "Ages", agesShort: "years",
+    formTitle: { academy: "Register your child", schools: "Request an event", summer: "Sign up for summer" },
+    sendBtn: { academy: "Send registration", schools: "Send request", summer: "Sign up" },
+    doneTitle: { academy: "Registration received", schools: "Request received", summer: "You're signed up" },
+    doneText: "Thank you. We will contact you soon on the phone number you gave us.",
+    another: "Send another",
+    reqNote: "Fields marked * are required.",
+    choose: "Choose…", notSure: "Not sure yet", yes: "Yes", no: "No",
+    sending: "Sending…",
+    missing: "Please fill in: ",
+    badPhone: "Please check the phone number.",
+    netErr: "We couldn't send your request. Check your internet connection and try again.",
+    serverErr: "We couldn't send your request: ",
+    academyClosed: "Registration is closed right now. Message us on WhatsApp to join the waiting list.",
+    noSummer: "No summer events are open right now. Check back soon.",
+    registerFor: "Register for this", full: "Registration closed",
+    whatsapp: "WhatsApp", call: "Call us", email: "Email", map: "Open in Maps", instagram: "Instagram", facebook: "Facebook",
+    loadErr: "The page could not be loaded. Please refresh.",
+    notConfigured: "Almost ready: paste your Apps Script web app URL in config.js.",
+    f: {
+      childName: "Child's name", birthDate: "Date of birth", parentName: "Parent's name", phone: "Phone (WhatsApp)",
+      email: "Email", school: "School", group: "Preferred group", playedBefore: "Has your child played in a club before?",
+      health: "Anything we should know about your child's health?", schoolName: "School name", contactName: "Your name",
+      role: "Your role at the school", eventType: "Type of event", preferredDate: "Preferred date",
+      students: "Number of students (approx.)", ages: "Students' ages", notes: "Anything else?",
+      age: "Child's age", event: "Event", children: "Number of children"
+    }
+  },
+  ar: {
+    nav: { academy: "الأكاديمية", schools: "المدارس", summer: "الصيف", faq: "الأسئلة" },
+    langBtn: "English",
+    paths: {
+      academy: ["لأولياء الأمور", "اشترك في أكاديمية الكرة", "تدريب أسبوعي في مجموعات حسب السن"],
+      schools: ["للمدارس", "احجز فعالية لمدرستك", "أيام رياضية وبطولات وورش تدريب"],
+      summer:  ["لأولياء الأمور", "سجّل في فعاليات الصيف", "معسكرات وبطولات وأيام مفتوحة"]
+    },
+    why: "لماذا {name}",
+    academyTitle: "أكاديمية كرة القدم", schoolsTitle: "فعاليات للمدارس", summerTitle: "فعاليات الصيف",
+    galleryTitle: "من الملعب", faqTitle: "أسئلة يطرحها أولياء الأمور", contactTitle: "تواصل معنا",
+    ages: "السن", agesShort: "سنة",
+    formTitle: { academy: "سجّل طفلك", schools: "اطلب فعالية", summer: "سجّل في الصيف" },
+    sendBtn: { academy: "إرسال التسجيل", schools: "إرسال الطلب", summer: "سجّل الآن" },
+    doneTitle: { academy: "تم استلام التسجيل", schools: "تم استلام الطلب", summer: "تم تسجيلك" },
+    doneText: "شكرًا لك. سنتواصل معك قريبًا على رقم الهاتف الذي أرسلته.",
+    another: "إرسال طلب آخر",
+    reqNote: "الحقول التي عليها * مطلوبة.",
+    choose: "اختر…", notSure: "لست متأكدًا بعد", yes: "نعم", no: "لا",
+    sending: "جارٍ الإرسال…",
+    missing: "من فضلك اكتب: ",
+    badPhone: "من فضلك راجع رقم الهاتف.",
+    netErr: "لم نتمكن من إرسال طلبك. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.",
+    serverErr: "لم نتمكن من إرسال طلبك: ",
+    academyClosed: "التسجيل مغلق حاليًا. راسلنا على واتساب لتنضم إلى قائمة الانتظار.",
+    noSummer: "لا توجد فعاليات صيفية متاحة الآن. تابعنا قريبًا.",
+    registerFor: "سجّل في هذه الفعالية", full: "التسجيل مغلق",
+    whatsapp: "واتساب", call: "اتصل بنا", email: "البريد", map: "افتح الخريطة", instagram: "إنستجرام", facebook: "فيسبوك",
+    loadErr: "تعذر تحميل الصفحة. من فضلك أعد تحميلها.",
+    notConfigured: "Almost ready: paste your Apps Script web app URL in config.js.",
+    f: {
+      childName: "اسم الطفل", birthDate: "تاريخ الميلاد", parentName: "اسم ولي الأمر", phone: "رقم الهاتف (واتساب)",
+      email: "البريد الإلكتروني", school: "المدرسة", group: "المجموعة المناسبة", playedBefore: "هل لعب طفلك في نادٍ من قبل؟",
+      health: "هل هناك شيء نعرفه عن صحة طفلك؟", schoolName: "اسم المدرسة", contactName: "اسمك",
+      role: "وظيفتك في المدرسة", eventType: "نوع الفعالية", preferredDate: "التاريخ المقترح",
+      students: "عدد الطلاب تقريبًا", ages: "أعمار الطلاب", notes: "ملاحظات أخرى",
+      age: "سن الطفل", event: "الفعالية", children: "عدد الأطفال"
+    }
+  }
+};
+
+// ============================================================
+// State
+// ============================================================
+const API = window.RESHAPE_API || "";
+const CACHE_KEY = "reshape_content_v1";
+let content = null;
+let lang = pickLang();
+const done = {};   // forms that were just sent
+
+function pickLang() {
+  const q = new URLSearchParams(location.search).get("lang");
+  if (q === "ar" || q === "en") return q;
+  try { return localStorage.getItem("reshape_lang") === "ar" ? "ar" : "en"; } catch (e) { return "en"; }
+}
+
+function esc(v) {
+  return String(v === null || v === undefined ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function safeUrl(u) { u = String(u || "").trim(); return /^https?:\/\//i.test(u) ? u : ""; }
+function loc(o) { return (o && (o[lang] || o.en)) || ""; }
+function money(n) {
+  if (n === "" || n === null || n === undefined || isNaN(Number(n))) return "";
+  return Number(n).toLocaleString("en-US") + " " + loc(content.brand.currency);
+}
+function digits(s) { return String(s || "").replace(/\D/g, ""); }
+
+// ============================================================
+// Form definitions
+// ============================================================
+function formFields(kind) {
+  const t = T[lang], c = content;
+  if (kind === "academy") return [
+    { k: "childName", req: 1 }, { k: "birthDate", type: "date", req: 1 },
+    { k: "parentName", req: 1 }, { k: "phone", type: "tel", req: 1 },
+    { k: "email", type: "email" }, { k: "school" },
+    { k: "group", type: "select", wide: 1, options: (c.academy.groups || []).map(g => ({
+        v: g.id, l: t.ages + " " + g.ages + ", " + loc(g.days) + " " + (g.time || "") })).concat([{ v: "", l: t.notSure }]) },
+    { k: "playedBefore", type: "select", options: [{ v: "Yes", l: t.yes }, { v: "No", l: t.no }] },
+    { k: "health", type: "textarea", wide: 1 }
+  ];
+  if (kind === "schools") return [
+    { k: "schoolName", req: 1 }, { k: "contactName", req: 1 },
+    { k: "role" }, { k: "phone", type: "tel", req: 1 },
+    { k: "email", type: "email" },
+    { k: "eventType", type: "select", req: 1, options: (c.schools.eventTypes || []).map(x => ({ v: x.id, l: loc(x.name) })) },
+    { k: "preferredDate", type: "date" }, { k: "students", type: "number" },
+    { k: "ages", wide: 1 }, { k: "notes", type: "textarea", wide: 1 }
+  ];
+  return [
+    { k: "childName", req: 1 }, { k: "age", type: "number", req: 1 },
+    { k: "parentName", req: 1 }, { k: "phone", type: "tel", req: 1 },
+    { k: "email", type: "email" }, { k: "children", type: "number" },
+    { k: "event", type: "select", req: 1, wide: 1, options: openEvents().map(e => ({ v: e.id, l: loc(e.name) + (loc(e.dates) ? " (" + loc(e.dates) + ")" : "") })) },
+    { k: "notes", type: "textarea", wide: 1 }
+  ];
+}
+function openEvents() { return (content.summer.events || []).filter(e => e.open !== false); }
+
+function fieldHtml(kind, f) {
+  const t = T[lang], id = kind + "-" + f.k;
+  const label = '<label for="' + id + '">' + esc(t.f[f.k]) + (f.req ? ' <span class="req">*</span>' : "") + "</label>";
+  let ctl;
+  if (f.type === "select") {
+    ctl = '<select id="' + id + '" name="' + f.k + '"' + (f.req ? " required" : "") + '><option value="">' + esc(t.choose) + "</option>" +
+      f.options.map(o => '<option value="' + esc(o.v) + '">' + esc(o.l) + "</option>").join("") + "</select>";
+  } else if (f.type === "textarea") {
+    ctl = '<textarea id="' + id + '" name="' + f.k + '" rows="3"></textarea>';
+  } else {
+    const type = f.type || "text";
+    const extra = type === "tel" ? ' inputmode="tel" autocomplete="tel" dir="ltr"' :
+                  type === "email" ? ' autocomplete="email" dir="ltr"' :
+                  type === "number" ? ' min="0" inputmode="numeric"' : "";
+    ctl = '<input id="' + id + '" name="' + f.k + '" type="' + type + '"' + extra + (f.req ? " required" : "") + ">";
+  }
+  return '<div' + (f.wide ? ' class="wide"' : "") + ">" + label + ctl + "</div>";
+}
+
+function formHtml(kind) {
+  const t = T[lang];
+  if (done[kind]) {
+    return '<div class="form-card" id="form-' + kind + '"><div class="done"><b>' + esc(t.doneTitle[kind]) + "</b><p>" + esc(t.doneText) +
+      '</p><button class="btn line" type="button" data-again="' + kind + '">' + esc(t.another) + "</button></div></div>";
+  }
+  return '<form class="form-card" id="form-' + kind + '" data-kind="' + kind + '" novalidate>' +
+    "<h3>" + esc(t.formTitle[kind]) + '</h3><p class="note">' + esc(t.reqNote) + "</p>" +
+    '<div class="grid">' + formFields(kind).map(f => fieldHtml(kind, f)).join("") + "</div>" +
+    '<input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">' +
+    '<button class="btn dark" type="submit">' + esc(t.sendBtn[kind]) + "</button>" +
+    '<p class="msg" role="status" aria-live="polite"></p></form>';
+}
+
+// ============================================================
+// Page rendering
+// ============================================================
+function pitchSvg() {
+  return '<svg class="pitch" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+    '<line x1="760" y1="-10" x2="760" y2="610"/><circle cx="760" cy="300" r="120"/><circle cx="760" cy="300" r="4"/>' +
+    '<rect x="1040" y="150" width="200" height="300"/><rect x="1130" y="225" width="110" height="150"/>' +
+    '<path d="M1040 245 A70 70 0 0 0 1040 355"/></svg>';
+}
+
+function render() {
+  const t = T[lang], c = content, b = c.brand;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.title = b.name + (lang === "ar" ? " | أكاديمية كرة القدم" : " | Football Academy");
+
+  if (/^#[0-9a-f]{6}$/i.test(b.primary || "")) document.documentElement.style.setProperty("--primary", b.primary);
+  if (/^#[0-9a-f]{6}$/i.test(b.accent || "")) document.documentElement.style.setProperty("--accent", b.accent);
+
+  const logo = safeUrl(b.logo);
+  if (logo) document.getElementById("logo").src = logo;
+  document.getElementById("brandName").textContent = b.name;
+  document.getElementById("langBtn").textContent = t.langBtn;
+  document.getElementById("links").innerHTML = ["academy", "schools", "summer", "faq"]
+    .map(k => '<a href="#' + k + '">' + esc(t.nav[k]) + "</a>").join("");
+
+  let h = "";
+
+  // Hero
+  const img = safeUrl(c.hero.image);
+  h += '<section class="hero' + (img ? " has-img" : "") + '" id="top"' +
+       (img ? ' style="background-image:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.55)),url(&quot;' + esc(img) + '&quot;)"' : "") + ">" +
+       (img ? "" : pitchSvg()) +
+       '<div class="wrap"><h1>' + esc(loc(c.hero.title)) + '</h1><p class="lead">' + esc(loc(c.hero.subtitle)) + "</p>" +
+       '<div class="paths">' + ["academy", "schools", "summer"].map(k =>
+         '<a class="path" href="#' + k + '"><small>' + esc(t.paths[k][0]) + "</small><b>" + esc(t.paths[k][1]) + "</b><span>" + esc(t.paths[k][2]) + "</span></a>").join("") +
+       "</div></div></section>";
+
+  // Why us
+  if ((c.features || []).length) {
+    h += '<section class="block"><div class="wrap"><div class="sec-head"><h2>' + esc(t.why.replace("{name}", b.name)) + '</h2></div><div class="features">' +
+      c.features.map(f => '<div class="feature"><h3>' + esc(loc(f.title)) + "</h3><p>" + esc(loc(f.text)) + "</p></div>").join("") + "</div></div></section>";
+  }
+
+  // Academy
+  const groups = c.academy.groups || [];
+  h += '<section class="block" id="academy"><div class="wrap split"><div><div class="sec-head"><h2>' + esc(t.academyTitle) + "</h2><p>" + esc(loc(c.academy.intro)) + "</p></div>" +
+    (groups.length ? '<ul class="groups">' + groups.map(g =>
+      '<li><div class="age">' + esc(g.ages) + "<small>" + esc(t.agesShort) + '</small></div><div class="g-info"><b>' + esc(loc(g.days)) + (g.time ? ", " + esc(g.time) : "") +
+      "</b><span>" + esc(loc(g.location)) + '</span></div><div class="price">' + esc(money(g.price)) + "<small>" + esc(loc(g.period)) + "</small></div></li>").join("") + "</ul>" : "") +
+    "</div><div>" + (c.academy.open === false ? '<div class="closed-box">' + esc(t.academyClosed) + "</div>" : formHtml("academy")) + "</div></div></section>";
+
+  // Schools
+  const types = c.schools.eventTypes || [];
+  h += '<section class="block" id="schools"><div class="wrap split"><div><div class="sec-head"><h2>' + esc(t.schoolsTitle) + "</h2><p>" + esc(loc(c.schools.intro)) + "</p></div>" +
+    (types.length ? '<ul class="types">' + types.map(x => "<li><b>" + esc(loc(x.name)) + "</b><span>" + esc(loc(x.desc)) + "</span></li>").join("") + "</ul>" : "") +
+    "</div><div>" + formHtml("schools") + "</div></div></section>";
+
+  // Summer
+  const evs = c.summer.events || [];
+  h += '<section class="block" id="summer"><div class="wrap"><div class="sec-head"><h2>' + esc(t.summerTitle) + "</h2><p>" + esc(loc(c.summer.intro)) + "</p></div>";
+  if (evs.length) {
+    h += '<div class="events">' + evs.map(e => {
+      const open = e.open !== false;
+      return '<article class="event' + (open ? "" : " closed") + '"><div class="date">' + esc(loc(e.dates)) + "</div><h3>" + esc(loc(e.name)) + "</h3><p>" + esc(loc(e.desc)) + "</p>" +
+        '<div class="meta"><span>' + esc(t.ages) + " " + esc(e.ages) + "</span><b>" + esc(money(e.price)) + "</b></div>" +
+        (open ? '<button class="btn" type="button" data-pick="' + esc(e.id) + '">' + esc(t.registerFor) + "</button>" : '<span class="tag">' + esc(t.full) + "</span>") +
+        "</article>";
+    }).join("") + "</div>";
+  }
+  h += '<div style="max-width:640px">' + (openEvents().length ? formHtml("summer") : '<div class="closed-box">' + esc(t.noSummer) + "</div>") + "</div></div></section>";
+
+  // Gallery
+  const pics = (c.gallery || []).map(safeUrl).filter(Boolean);
+  if (pics.length) {
+    h += '<section class="block"><div class="wrap"><div class="sec-head"><h2>' + esc(t.galleryTitle) + '</h2></div><div class="gallery">' +
+      pics.map(p => '<img loading="lazy" alt="" src="' + esc(p) + '">').join("") + "</div></div></section>";
+  }
+
+  // FAQ
+  if ((c.faq || []).length) {
+    h += '<section class="block" id="faq"><div class="wrap"><div class="sec-head"><h2>' + esc(t.faqTitle) + '</h2></div><div class="faq">' +
+      c.faq.map(q => "<details><summary>" + esc(loc(q.q)) + "</summary><p>" + esc(loc(q.a)) + "</p></details>").join("") + "</div></div></section>";
+  }
+
+  // Contact
+  const links = [];
+  if (digits(b.whatsapp)) links.push(['https://wa.me/' + digits(b.whatsapp), t.whatsapp]);
+  if (b.phone) links.push(["tel:" + String(b.phone).replace(/[^\d+]/g, ""), t.call + " " + b.phone]);
+  if (b.email) links.push(["mailto:" + b.email, b.email]);
+  if (safeUrl(b.mapUrl)) links.push([safeUrl(b.mapUrl), t.map]);
+  if (safeUrl(b.instagram)) links.push([safeUrl(b.instagram), t.instagram]);
+  if (safeUrl(b.facebook)) links.push([safeUrl(b.facebook), t.facebook]);
+  h += '<footer><div class="wrap"><h2>' + esc(t.contactTitle) + '</h2><div class="contacts">' +
+    links.map(l => '<a href="' + esc(l[0]) + '" target="_blank" rel="noopener"' + (l[0].startsWith("tel:") || l[0].startsWith("mailto:") ? ' dir="ltr"' : "") + ">" + esc(l[1]) + "</a>").join("") +
+    "</div>" + (loc(b.address) ? '<p class="addr">' + esc(loc(b.address)) + "</p>" : "") +
+    '<p class="copy">© ' + new Date().getFullYear() + " " + esc(b.name) + "</p></div></footer>";
+
+  // keep what the visitor already typed
+  const typed = saveTyped();
+  document.getElementById("app").innerHTML = h;
+  restoreTyped(typed);
+
+  document.getElementById("waSlot").innerHTML = digits(b.whatsapp)
+    ? '<a class="wa" href="https://wa.me/' + digits(b.whatsapp) + '" target="_blank" rel="noopener">' + esc(t.whatsapp) + "</a>" : "";
+}
+
+function saveTyped() {
+  const out = {};
+  document.querySelectorAll("form[data-kind]").forEach(f => {
+    out[f.dataset.kind] = {};
+    f.querySelectorAll("[name]").forEach(el => { if (el.name !== "website") out[f.dataset.kind][el.name] = el.value; });
+  });
+  return out;
+}
+function restoreTyped(typed) {
+  Object.keys(typed).forEach(kind => {
+    const f = document.getElementById("form-" + kind);
+    if (!f || f.tagName !== "FORM") return;
+    Object.keys(typed[kind]).forEach(n => { const el = f.elements[n]; if (el) el.value = typed[kind][n]; });
+  });
+}
+
+// ============================================================
+// Events
+// ============================================================
+document.getElementById("langBtn").addEventListener("click", () => {
+  lang = lang === "en" ? "ar" : "en";
+  try { localStorage.setItem("reshape_lang", lang); } catch (e) {}
+  if (content) render();
+});
+
+document.addEventListener("click", e => {
+  const pick = e.target.closest("[data-pick]");
+  if (pick) {
+    const sel = document.getElementById("summer-event");
+    if (sel) { sel.value = pick.dataset.pick; document.getElementById("form-summer").scrollIntoView({ block: "start" }); sel.focus({ preventScroll: true }); }
+  }
+  const again = e.target.closest("[data-again]");
+  if (again) { delete done[again.dataset.again]; render(); document.getElementById("form-" + again.dataset.again).scrollIntoView({ block: "start" }); }
+});
+
+document.addEventListener("submit", async e => {
+  const form = e.target.closest("form[data-kind]");
+  if (!form) return;
+  e.preventDefault();
+  const t = T[lang], kind = form.dataset.kind, msg = form.querySelector(".msg"), btn = form.querySelector("button[type=submit]");
+  msg.className = "msg"; msg.textContent = "";
+  form.querySelectorAll(".bad").forEach(el => el.classList.remove("bad"));
+
+  const data = {};
+  formFields(kind).forEach(f => { data[f.k] = (form.elements[f.k].value || "").trim(); });
+
+  const missing = formFields(kind).filter(f => f.req && !data[f.k]);
+  if (missing.length) {
+    missing.forEach(f => form.elements[f.k].classList.add("bad"));
+    msg.className = "msg err"; msg.textContent = t.missing + missing.map(f => t.f[f.k]).join(lang === "ar" ? "، " : ", ");
+    form.elements[missing[0].k].focus();
+    return;
+  }
+  if (digits(data.phone).length < 8) {
+    form.elements.phone.classList.add("bad");
+    msg.className = "msg err"; msg.textContent = t.badPhone; form.elements.phone.focus();
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = t.sending;
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      body: JSON.stringify({ action: "submit", form: kind, lang: lang, website: form.elements.website.value, data: data })
+    });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || "error");
+    done[kind] = true;
+    form.reset();
+    render();
+    document.getElementById("form-" + kind).scrollIntoView({ block: "center" });
+  } catch (err) {
+    msg.className = "msg err";
+    msg.textContent = err instanceof TypeError ? t.netErr : t.serverErr + err.message;
+    btn.disabled = false; btn.textContent = t.sendBtn[kind];
+  }
+});
+
+// ============================================================
+// Load content (instant from the last visit, then fresh from Google)
+// ============================================================
+(function start() {
+  if (!API || API.indexOf("PASTE_") === 0) {
+    document.getElementById("app").innerHTML = '<div class="state">' + esc(T.en.notConfigured) + "</div>";
+    return;
+  }
+  try { const c = JSON.parse(localStorage.getItem(CACHE_KEY)); if (c && c.brand) { content = c; render(); } } catch (e) {}
+  fetch(API + "?action=content")
+    .then(r => r.json())
+    .then(j => {
+      if (!j.ok) throw new Error(j.error);
+      content = j.content;
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(content)); } catch (e) {}
+      render();
+      if (location.hash) { const el = document.querySelector(location.hash); if (el) el.scrollIntoView(); }
+    })
+    .catch(() => { if (!content) document.getElementById("app").innerHTML = '<div class="state">' + esc(T[lang].loadErr) + "</div>"; });
+})();
+</script>
+</body>
+</html>
