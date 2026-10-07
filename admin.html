@@ -226,8 +226,26 @@ const SECTIONS = {
   ]],
   hero: ["Top of the page", () => [
     hint("The first thing visitors see. Keep the title short."),
-    rows(bi("Title", ["hero", "title"]), bi("Sentence under the title", ["hero", "subtitle"], { type: "textarea", rows: 2 }),
+    rows(bi("Small line above the title", ["hero", "tagline"]), bi("Title", ["hero", "title"]),
+         bi("Sentence under the title", ["hero", "subtitle"], { type: "textarea", rows: 2 }),
          imageField("Background photo (optional)", ["hero", "image"], "leave empty to use the pitch design"))
+  ]],
+  proof: ["Numbers & clients", () => [
+    hint("Shown right under the top of the page. Real numbers and client names make visitors trust you for events. Leave both empty to hide this part."),
+    el("h3", { class: "sub-title" }, "Numbers"),
+    list(["stats"], {
+      title: x => x.value || "New number",
+      make: () => ({ id: newId("n"), value: "", label: empty() }),
+      addLabel: "Add a number",
+      body: p => rows(field("Number", p.concat("value"), { help: "e.g. 50+", wide: true }), bi("What it counts", p.concat("label")))
+    }),
+    el("h3", { class: "sub-title" }, "Schools and companies you worked with"),
+    list(["clients"], {
+      title: x => x.name || "New client",
+      make: () => ({ id: newId("k"), name: "", logo: "" }),
+      addLabel: "Add a client",
+      body: p => rows(field("Name", p.concat("name"), { wide: true }), imageField("Logo URL (optional)", p.concat("logo"), "without a logo, the name is shown"))
+    })
   ]],
   features: ["Why us", () => [
     hint("Short reasons to choose the academy. Four works best."),
@@ -259,6 +277,17 @@ const SECTIONS = {
     list(["schools", "eventTypes"], {
       title: x => (x.name && x.name.en) || "New event type",
       make: () => ({ id: newId("s"), name: empty(), desc: empty() }),
+      addLabel: "Add an event type",
+      body: p => rows(bi("Name", p.concat("name")), bi("Description", p.concat("desc"), { type: "textarea", rows: 2 }))
+    })
+  ]],
+  companies: ["Company events", () => [
+    hint("The kinds of events companies can request. They also appear in the company form."),
+    rows(bi("Introduction", ["companies", "intro"], { type: "textarea", rows: 2 })),
+    el("h3", { class: "sub-title" }, "Event types"),
+    list(["companies", "eventTypes"], {
+      title: x => (x.name && x.name.en) || "New event type",
+      make: () => ({ id: newId("c"), name: empty(), desc: empty() }),
       addLabel: "Add an event type",
       body: p => rows(bi("Name", p.concat("name")), bi("Description", p.concat("desc"), { type: "textarea", rows: 2 }))
     })
@@ -298,10 +327,11 @@ const SECTIONS = {
 };
 function hint(t) { return el("p", { class: "hint" }, t); }
 
+const ORDER = ["brand", "hero", "proof", "schools", "companies", "academy", "summer", "features", "faq", "gallery"];
 function renderSide() {
   const side = document.getElementById("side");
   side.innerHTML = "";
-  Object.keys(SECTIONS).forEach(k => side.append(el("button", {
+  ORDER.forEach(k => side.append(el("button", {
     type: "button", class: k === current ? "on" : "", on: { click: () => { current = k; renderSide(); renderPanel(); } }
   }, SECTIONS[k][0])));
 }
