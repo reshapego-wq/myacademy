@@ -101,6 +101,7 @@
     <span id="status"></span>
     <a class="btn ghost" id="sheetLink" target="_blank" rel="noopener">View requests</a>
     <a class="btn ghost" href="index.html" target="_blank" rel="noopener">Open site</a>
+    <a class="btn ghost" href="payments.html" target="_blank" rel="noopener">Payments</a>
     <button class="btn" id="saveBtn" type="button">Save changes</button>
     <button class="btn ghost" id="logoutBtn" type="button">Sign out</button>
   </div></div>
@@ -438,6 +439,17 @@ const bil = (en, ar) => ({ en: en, ar: ar });
 const opt = (en, ar) => ({ id: newId("o"), label: bil(en, ar), image: "" });
 const q = (type, en, ar, extra) => Object.assign({ id: newId("q"), type: type, label: bil(en, ar), help: empty(), required: false, image: "", options: [] }, extra || {});
 
+function exampleTerms(enabled) {
+  return {
+    enabled: enabled,
+    title: bil("Before you start", "قبل أن تبدأ"),
+    text: bil(
+      "Please read these points carefully:\n- Children are dropped off and picked up only by a parent or a person you name to us.\n- Children must follow the camp rules and the instructions of the coaches.\n- Tell us in this form about any health condition, allergy or medicine.\n- Photos and videos may be taken during the camp and shared on Reshape's pages.\n\nRefund policy:\n- Full refund if you cancel 14 days or more before the camp starts.\n- 50% refund if you cancel 7 to 13 days before the camp.\n- No refund less than 7 days before the camp or after it starts.",
+      "من فضلك اقرأ هذه النقاط بعناية:\n- يتم توصيل الأطفال واستلامهم فقط بواسطة ولي الأمر أو شخص تحدده لنا.\n- يلتزم الأطفال بقواعد المعسكر وتعليمات المدربين.\n- أخبرنا في هذه الاستمارة بأي حالة صحية أو حساسية أو أدوية.\n- قد يتم التقاط صور وفيديوهات أثناء المعسكر ونشرها على صفحات Reshape.\n\nسياسة الاسترجاع:\n- استرداد كامل المبلغ عند الإلغاء قبل بداية المعسكر بـ ١٤ يومًا أو أكثر.\n- استرداد ٥٠٪ عند الإلغاء قبل المعسكر بـ ٧ إلى ١٣ يومًا.\n- لا يوجد استرداد قبل المعسكر بأقل من ٧ أيام أو بعد بدايته."),
+    confirm: bil("I have read and agree to the terms above", "قرأت الشروط أعلاه وأوافق عليها")
+  };
+}
+
 function formTemplate() {
   const grades = [opt("KG1", "KG1"), opt("KG2", "KG2")];
   const arNums = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر", "الحادي عشر", "الثاني عشر"];
@@ -445,7 +457,7 @@ function formTemplate() {
   const allergy = q("yesno", "Does your child have any food allergies?", "هل يعاني طفلك من حساسية تجاه أي أطعمة؟", { required: true });
   const special = q("yesno", "Does your child have a disability or any special needs?", "هل لدى طفلك إعاقة أو احتياجات خاصة؟", { required: true });
   return {
-    id: newId("form"), status: "draft",
+    id: newId("form"), status: "draft", terms: exampleTerms(true),
     title: bil("Summer camp registration", "استمارة التسجيل في المعسكر الصيفي"),
     intro: bil("Thank you for your payment. Please fill in this form for each child.", "شكرًا لك على الدفع. من فضلك املأ هذه الاستمارة لكل طفل."),
     offers: [["Original Price"], ["Reshape Family"], ["Early Bird"], ["Second Brother"], ["Group Discount (5)"], ["Reshape Staff"]]
@@ -532,6 +544,7 @@ function fieldEditor(p) {
 
 function formEditor(f, fi) {
   const path = ["forms", fi];
+  if (!f.terms) f.terms = exampleTerms(false);   // forms made before terms existed: ready, but off until you tick it
   const det = el("details", { class: "form-box", open: openForms.has(f.id) });
   det.addEventListener("toggle", () => det.open ? openForms.add(f.id) : openForms.delete(f.id));
   const st = f.status || "draft";
@@ -551,6 +564,7 @@ function formEditor(f, fi) {
           () => { link.select(); toast("Select the link and copy it."); });
       } } }, "Copy link"),
       el("a", { class: "btn ghost small", href: link.value, target: "_blank", rel: "noopener" }, "Open"),
+      el("a", { class: "btn ghost small", href: new URL("payments.html?f=" + encodeURIComponent(f.id), location.href).href, target: "_blank", rel: "noopener" }, "Payments report"),
       GIDS[f.id] !== undefined ? el("a", { class: "btn ghost small", href: SHEET_URL + "#gid=" + GIDS[f.id], target: "_blank", rel: "noopener" }, "Answers sheet") : "",
       el("button", { class: "btn ghost small", type: "button", on: { click: () => {
         const copy = JSON.parse(JSON.stringify(f));
@@ -570,6 +584,12 @@ function formEditor(f, fi) {
     f.sheetName ? el("p", { class: "hint" }, "Answers go to the sheet \"" + f.sheetName + "\".") :
       el("p", { class: "hint" }, "Its sheet is created when you save it as Open or Closed. The sheet takes the form's English title."),
     rows(bi("Form title", path.concat("title")), bi("Text under the title", path.concat("intro"), { type: "textarea", rows: 2 })),
+    el("h3", { class: "sub-title" }, "Terms parents must accept first"),
+    hint("Shown before the questions. The parent can only start after ticking the box, and the sheet records it in \"Accepted terms\". Start a line with - for a bullet, end a line with : for a small title. The example text is only a starting point: replace it with your real rules and refund policy."),
+    rows(field("Parents must accept these terms before filling the form", path.concat("terms", "enabled"), { type: "checkbox", wide: true }),
+         bi("Title", path.concat("terms", "title")),
+         bi("Terms", path.concat("terms", "text"), { type: "textarea", rows: 10 }),
+         bi("Checkbox text", path.concat("terms", "confirm"))),
     el("h3", { class: "sub-title" }, "Offers & prices"),
     hint("Only your team sees these. In the answers sheet, pick the offer for each child in the \"Offer\" column: the price fills in by itself, and \"Remaining\" is calculated after you type the amount paid. Hide an offer that is no longer running."),
     el("div", { class: "nested" }, list(path.concat("offers"), {
