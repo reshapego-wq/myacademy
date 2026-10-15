@@ -68,6 +68,18 @@
   .done p { color: var(--muted); max-width: 46ch; margin: 0 auto; }
   .state { padding: 30px 0; text-align: center; color: var(--muted); }
   .state a { color: var(--primary); font-weight: 700; }
+  .terms h2 { font-size: 1.25rem; color: var(--primary); margin-bottom: 12px; }
+  .terms-text p { margin: 0 0 10px; }
+  .terms-text p.sub { font-weight: 800; margin-top: 16px; }
+  .terms-text ul { margin: 0 0 12px; padding-inline-start: 22px; }
+  .terms-text li { margin-bottom: 6px; }
+  .terms-box { max-height: 52vh; overflow: auto; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; background: var(--chalk); }
+  .agree { display: flex; gap: 12px; align-items: flex-start; margin-top: 18px; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; font-weight: 700; }
+  .agree input { width: 22px; height: 22px; flex: none; margin-top: 2px; accent-color: var(--primary); cursor: pointer; }
+  .agree:has(input:checked) { border-color: var(--primary); background: #e9f0f6; }
+  details.again { margin-bottom: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; background: var(--chalk); }
+  details.again summary { cursor: pointer; font-weight: 700; color: var(--primary); font-size: .9rem; }
+  details.again .terms-text { margin-top: 10px; font-size: .92rem; }
 </style>
 </head>
 <body>
@@ -83,7 +95,8 @@
 <script>
 const T = {
   en: {
-    langBtn: "العربية", reqNote: "Questions marked * are required.", send: "Send", sending: "Sending…", choose: "Choose…",
+    langBtn: "العربية", start: "Start filling the form", readAgain: "Read the terms again", termsTitle: "Before you start",
+    agree: "I have read and agree to the terms above", reqNote: "Questions marked * are required.", send: "Send", sending: "Sending…", choose: "Choose…",
     yes: "Yes", no: "No", required: "Please answer this question.", badPhone: "Please check this phone number.",
     badEmail: "Please check this email.", fix: "Please check the questions marked in red.",
     doneTitle: "Thank you, your registration is complete", doneText: "We received your answers. We'll contact you if we need anything else.",
@@ -94,7 +107,8 @@ const T = {
     notConfigured: "Almost ready: paste your Apps Script web app URL in config.js."
   },
   ar: {
-    langBtn: "English", reqNote: "الأسئلة التي عليها * مطلوبة.", send: "إرسال", sending: "جارٍ الإرسال…", choose: "اختر…",
+    langBtn: "English", start: "ابدأ ملء الاستمارة", readAgain: "اقرأ الشروط مرة أخرى", termsTitle: "قبل أن تبدأ",
+    agree: "قرأت الشروط أعلاه وأوافق عليها", reqNote: "الأسئلة التي عليها * مطلوبة.", send: "إرسال", sending: "جارٍ الإرسال…", choose: "اختر…",
     yes: "نعم", no: "لا", required: "من فضلك أجب عن هذا السؤال.", badPhone: "من فضلك راجع رقم الهاتف.",
     badEmail: "من فضلك راجع البريد الإلكتروني.", fix: "من فضلك راجع الأسئلة المحددة باللون الأحمر.",
     doneTitle: "شكرًا لك، تم التسجيل بنجاح", doneText: "استلمنا إجاباتك، وسنتواصل معك إذا احتجنا أي شيء آخر.",
@@ -113,6 +127,24 @@ let lang = (() => { const q = new URLSearchParams(location.search).get("lang"); 
 let data = null;           // server answer: { ok, form, brand, closed, missing }
 let answers = {};          // question id -> value (text, option id, "yes"/"no", or list of option ids)
 let sent = false;
+let accepted = false;      // parent confirmed reading the terms
+
+// Terms text: a line starting with "-" or "•" is a bullet, a line ending with ":" is a small title
+function termsHtml(text) {
+  const lines = String(text || "").split(/\r?\n/);
+  let html = "", list = [];
+  const flush = () => { if (list.length) { html += "<ul>" + list.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>"; list = []; } };
+  lines.forEach(l => {
+    const t = l.trim();
+    if (!t) { flush(); return; }
+    const m = t.match(/^[-•*]\s*(.+)$/);
+    if (m) { list.push(m[1]); return; }
+    flush();
+    html += '<p' + (/[:：]$/.test(t) ? ' class="sub"' : "") + ">" + esc(t) + "</p>";
+  });
+  flush();
+  return html;
+}
 
 function esc(v) { return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
 function safeUrl(u) { u = String(u || "").trim(); return /^https?:\/\//i.test(u) ? u : ""; }
@@ -205,7 +237,19 @@ function render() {
     return;
   }
 
-  card.innerHTML = '<form id="theForm" novalidate><p class="note">' + esc(t.reqNote) + "</p>" +
+  if (f.terms && !accepted) {
+    card.innerHTML = '<div class="terms"><h2>' + esc(loc(f.terms.title) || t.termsTitle) + '</h2><div class="terms-box terms-text">' + termsHtml(loc(f.terms.text)) + "</div>" +
+      '<label class="agree"><input type="checkbox" id="agree"><span>' + esc(loc(f.terms.confirm) || t.agree) + "</span></label>" +
+      '<button class="btn" type="button" id="startBtn" disabled>' + esc(t.start) + "</button></div>";
+    const agree = document.getElementById("agree"), start = document.getElementById("startBtn");
+    agree.addEventListener("change", () => { start.disabled = !agree.checked; });
+    start.addEventListener("click", () => { accepted = true; render(); window.scrollTo(0, 0); });
+    return;
+  }
+
+  card.innerHTML = '<form id="theForm" novalidate>' +
+    (f.terms ? '<details class="again"><summary>' + esc(t.readAgain) + '</summary><div class="terms-text">' + termsHtml(loc(f.terms.text)) + "</div></details>" : "") +
+    '<p class="note">' + esc(t.reqNote) + "</p>" +
     f.fields.map(questionHtml).join("") +
     '<input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">' +
     '<button class="btn" type="submit">' + esc(t.send) + '</button><p class="msg" role="status" aria-live="polite"></p></form>';
@@ -258,7 +302,7 @@ document.addEventListener("submit", async e => {
   }
   btn.disabled = true; btn.textContent = t.sending;
   try {
-    const r = await fetch(API, { method: "POST", body: JSON.stringify({ action: "submitForm", id: FORM_ID, lang: lang, website: form.elements.website.value, data: out }) });
+    const r = await fetch(API, { method: "POST", body: JSON.stringify({ action: "submitForm", id: FORM_ID, lang: lang, website: form.elements.website.value, termsAccepted: accepted, data: out }) });
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || "error");
     sent = true; render(); window.scrollTo(0, 0);
