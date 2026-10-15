@@ -23,7 +23,7 @@
   /* Login */
   #login { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
   .login-box { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 30px; width: 100%; max-width: 360px; }
-  .login-box img { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; margin-bottom: 14px; }
+  .login-box img { height: 56px; width: auto; max-width: 200px; object-fit: contain; margin-bottom: 14px; }
   .login-box h1 { font-size: 1.25rem; margin-bottom: 18px; }
   .login-box .btn { width: 100%; margin-top: 14px; padding: 11px; }
   #loginErr { color: var(--danger); font-size: .88rem; margin-top: 10px; min-height: 1.2em; }
@@ -62,6 +62,19 @@
   .item { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 14px; background: #fbfcfa; }
   .item-head { display: flex; gap: 6px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
   .item-head b { margin-inline-end: auto; }
+  .item.is-hidden { opacity: .6; border-style: dashed; background: #f1f1ee; }
+  .badge { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #e7e9e4; color: var(--muted); margin-inline-start: 6px; vertical-align: middle; }
+  .badge.open { background: #dff1e6; color: var(--ok); }
+  .badge.closed { background: #fbe9e7; color: var(--danger); }
+  details.form-box { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; background: #fff; }
+  details.form-box > summary { cursor: pointer; padding: 14px 16px; font-weight: 700; list-style: none; display: flex; align-items: center; gap: 8px; }
+  details.form-box > summary::-webkit-details-marker { display: none; }
+  details.form-box > summary::before { content: "▸"; color: var(--muted); }
+  details.form-box[open] > summary::before { content: "▾"; }
+  .form-body { padding: 0 16px 18px; }
+  .link-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 6px 0 18px; }
+  .link-row input { flex: 1; min-width: 220px; background: #f6f7f4; }
+  .nested .item { background: #fff; }
   .preview { max-height: 90px; border-radius: 8px; margin-top: 8px; border: 1px solid var(--line); }
   .sub-title { font-size: 1rem; margin: 26px 0 10px; }
   #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 20px; border-radius: 8px; display: none; z-index: 50; max-width: 90vw; }
@@ -152,6 +165,14 @@ function field(label, path, opt) {
     input.addEventListener("change", () => set(path, input.checked));
     return el("div", { class: "fld check" + (opt.wide ? " wide" : "") }, el("label", { for: id }, input, label));
   }
+  if (opt.type === "select") {
+    input = el("select", { id });
+    (opt.options || []).forEach(([val, txt]) => input.append(el("option", { value: val }, txt)));
+    input.value = v == null ? "" : v;
+    input.addEventListener("change", () => { set(path, input.value); if (opt.onChange) opt.onChange(input.value); });
+    const lab = el("label", { for: id }, label, opt.help ? el("small", {}, " " + opt.help) : "");
+    return el("div", { class: "fld" + (opt.wide ? " wide" : "") }, lab, input);
+  }
   if (opt.type === "textarea") input = el("textarea", { id, rows: opt.rows || 3, dir: opt.dir });
   else input = el("input", { id, type: opt.type || "text", dir: opt.dir, placeholder: opt.placeholder });
   input.value = v == null ? "" : v;
@@ -185,14 +206,22 @@ function list(path, opt) {
   const arr = get(path);
   const box = el("div");
   arr.forEach((item, i) => {
+    const hidden = !!(item && typeof item === "object" && item.hidden);
     const head = el("div", { class: "item-head" },
-      el("b", {}, opt.title(item, i)),
+      el("b", {}, opt.title(item, i), hidden ? el("span", { class: "badge" }, "Hidden") : ""),
       el("button", { class: "btn ghost small", type: "button", title: "Move up", on: { click: () => move(i, -1) } }, "Up"),
       el("button", { class: "btn ghost small", type: "button", title: "Move down", on: { click: () => move(i, 1) } }, "Down"),
+      opt.noHide ? "" : el("button", { class: "btn ghost small", type: "button",
+        title: hidden ? "Show it on the page again" : "Keep it, but don't show it on the page",
+        on: { click: () => {
+          if (typeof arr[i] === "string") arr[i] = { url: arr[i], hidden: true };   // photos are plain links
+          else arr[i].hidden = !arr[i].hidden;
+          markDirty(true); renderPanel();
+        } } }, hidden ? "Appear" : "Hide"),
       el("button", { class: "btn danger small", type: "button", on: { click: () => {
         if (confirm("Delete this item?")) { arr.splice(i, 1); markDirty(true); renderPanel(); }
       } } }, "Delete"));
-    box.append(el("div", { class: "item" }, head, opt.body(path.concat(i), item)));
+    box.append(el("div", { class: "item" + (hidden ? " is-hidden" : "") }, head, opt.body(path.concat(i), item)));
   });
   box.append(el("button", { class: "btn ghost", type: "button", on: { click: () => { arr.push(opt.make()); markDirty(true); renderPanel(); } } }, opt.addLabel));
   function move(i, d) {
@@ -204,6 +233,8 @@ function list(path, opt) {
   return box;
 }
 const empty = () => ({ en: "", ar: "" });
+// a photo is either a link, or { url, hidden } once it has been hidden
+function urlPath(p) { return typeof get(p) === "string" ? p : p.concat("url"); }
 
 // ---------------- sections ----------------
 const SECTIONS = {
@@ -235,7 +266,7 @@ const SECTIONS = {
       title: (x, i) => "Photo " + (i + 1),
       make: () => "",
       addLabel: "Add a photo",
-      body: p => rows(imageField("Photo URL", p))
+      body: p => rows(imageField("Photo URL", urlPath(p)))
     })
   ]],
   proof: ["Numbers & clients", () => [
@@ -301,7 +332,7 @@ const SECTIONS = {
     })
   ]],
   summer: ["Camps & family events", () => [
-    hint("Camps, family days, father & child and so on. Untick \"Registration is open\" when one is full: it stays on the page but people can't register. Leave price or ages empty to hide them."),
+    hint("Camps, family days, father & child and so on. Untick \"Registration is open\" when one is full: it stays on the page but people can't register. Leave price or ages empty to hide them. \"Offer label\" shows a badge on the card (e.g. Early Bird) and \"Note\" a short line under it (e.g. Ask about the siblings offer). Leave them empty to hide them."),
     rows(bi("Introduction", ["summer", "intro"], { type: "textarea", rows: 2 })),
     el("h3", { class: "sub-title" }, "Events"),
     list(["summer", "events"], {
@@ -310,6 +341,7 @@ const SECTIONS = {
       addLabel: "Add an event",
       body: p => rows(field("Registration is open", p.concat("open"), { type: "checkbox", wide: true }),
                       bi("Name", p.concat("name")), bi("Dates", p.concat("dates")),
+                      bi("Offer label", p.concat("badge"), {}), bi("Note", p.concat("note")),
                       field("Ages", p.concat("ages")), field("Price", p.concat("price"), { type: "number" }),
                       bi("Description", p.concat("desc"), { type: "textarea", rows: 2 }))
     })
@@ -329,13 +361,193 @@ const SECTIONS = {
       title: (x, i) => "Photo " + (i + 1),
       make: () => "",
       addLabel: "Add a photo",
-      body: p => rows(imageField("Photo URL", p))
+      body: p => rows(imageField("Photo URL", urlPath(p)))
     })
   ]]
 };
 function hint(t) { return el("p", { class: "hint" }, t); }
 
-const ORDER = ["brand", "hero", "proof", "companies", "schools", "summer", "academy", "features", "faq", "gallery"];
+
+// ============================================================
+// REGISTRATION FORMS (after payment)
+// ============================================================
+let GIDS = {}, SHEET_URL = "";
+const openForms = new Set();
+const TYPES = [
+  ["text", "Short answer"], ["textarea", "Paragraph"], ["number", "Number"], ["phone", "Phone number"],
+  ["email", "Email"], ["date", "Date"], ["select", "Dropdown list"], ["radio", "Choose one (cards, can have pictures)"],
+  ["checkbox", "Choose several"], ["yesno", "Yes / No"], ["heading", "Section title (no answer)"]
+];
+const TYPE_NAME = Object.fromEntries(TYPES);
+const HAS_OPTIONS = ["select", "radio", "checkbox"];
+const bil = (en, ar) => ({ en: en, ar: ar });
+const opt = (en, ar) => ({ id: newId("o"), label: bil(en, ar), image: "" });
+const q = (type, en, ar, extra) => Object.assign({ id: newId("q"), type: type, label: bil(en, ar), help: empty(), required: false, image: "", options: [] }, extra || {});
+
+function formTemplate() {
+  const grades = [opt("KG1", "KG1"), opt("KG2", "KG2")];
+  const arNums = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر", "الحادي عشر", "الثاني عشر"];
+  for (let i = 1; i <= 12; i++) grades.push(opt("Grade " + i, "الصف " + arNums[i - 1]));
+  const allergy = q("yesno", "Does your child have any food allergies?", "هل يعاني طفلك من حساسية تجاه أي أطعمة؟", { required: true });
+  const special = q("yesno", "Does your child have a disability or any special needs?", "هل لدى طفلك إعاقة أو احتياجات خاصة؟", { required: true });
+  return {
+    id: newId("form"), status: "draft",
+    title: bil("Summer camp registration", "استمارة التسجيل في المعسكر الصيفي"),
+    intro: bil("Thank you for your payment. Please fill in this form for each child.", "شكرًا لك على الدفع. من فضلك املأ هذه الاستمارة لكل طفل."),
+    offers: [["Original Price"], ["Reshape Family"], ["Early Bird"], ["Second Brother"], ["Group Discount (5)"], ["Reshape Staff"]]
+      .map(([n]) => ({ id: newId("of"), name: n, price: "" })),
+    fields: [
+      q("heading", "Child information", "بيانات الطفل"),
+      q("text", "Child's full name", "اسم الطفل بالكامل", { required: true }),
+      q("select", "Grade", "الصف الدراسي", { required: true, options: grades }),
+      q("text", "School", "المدرسة", { required: true }),
+      q("heading", "Parent information", "بيانات ولي الأمر"),
+      q("text", "Parent's full name", "اسم ولي الأمر بالكامل", { required: true }),
+      q("phone", "Parent's phone (WhatsApp)", "رقم هاتف ولي الأمر (واتساب)", { required: true }),
+      q("phone", "Another phone number (optional)", "رقم هاتف آخر (اختياري)"),
+      q("heading", "Camp details", "تفاصيل المعسكر"),
+      q("radio", "T-shirt size", "مقاس التيشيرت", { required: true,
+        help: bil("Check the size chart, then choose the closest size.", "راجع جدول المقاسات ثم اختر المقاس الأقرب."),
+        options: ["4–6", "6–8", "8–10", "10–12", "12–14", "S", "M", "L", "XL"].map(x => opt(x, x)) }),
+      q("checkbox", "Which meals does your child prefer?", "ما الوجبات التي يفضلها طفلك؟", { required: true,
+        options: [opt("Chicken", "فراخ"), opt("Meat", "لحم"), opt("Fish", "سمك"), opt("Vegetarian", "نباتي")] }),
+      allergy,
+      q("textarea", "Which foods is your child allergic to?", "ما الأطعمة التي يتحسس منها طفلك؟", { required: true, showIf: { field: allergy.id, value: "yes" } }),
+      special,
+      q("textarea", "Please tell us more, so we can support your child", "من فضلك أخبرنا بالتفاصيل لنتمكن من دعم طفلك", { required: true, showIf: { field: special.id, value: "yes" } }),
+      q("textarea", "Anything else we should know?", "هل هناك أي شيء آخر يجب أن نعرفه؟")
+    ]
+  };
+}
+
+function formLink(f) { return new URL("form.html?f=" + encodeURIComponent(f.id), location.href).href; }
+
+function fieldEditor(p) {
+  const fld = get(p);
+  const formFields = get(p.slice(0, 3));
+  const idx = p[3];
+  const box = [];
+  box.push(rows(
+    field("Type", p.concat("type"), { type: "select", options: TYPES, onChange: () => {
+      const f2 = get(p);
+      if (HAS_OPTIONS.indexOf(f2.type) >= 0 && !(f2.options || []).length) f2.options = [opt("", ""), opt("", "")];
+      renderPanel();
+    } }),
+    fld.type === "heading" ? el("div") : field("Required", p.concat("required"), { type: "checkbox" }),
+    bi(fld.type === "heading" ? "Section title" : "Question", p.concat("label")),
+    bi(fld.type === "heading" ? "Text under the title (optional)" : "Help text (optional)", p.concat("help"), { type: "textarea", rows: 2 })
+  ));
+  if (fld.type !== "heading") {
+    box.push(rows(imageField("Picture above the question (optional, e.g. size chart)", p.concat("image"))));
+  }
+  if (HAS_OPTIONS.indexOf(fld.type) >= 0) {
+    box.push(el("h4", { class: "sub-title", style: "font-size:.9rem;margin-top:14px" }, "Choices"));
+    box.push(el("div", { class: "nested" }, list(p.concat("options"), {
+      title: (o, i) => (o.label && (o.label.en || o.label.ar)) || "Choice " + (i + 1),
+      make: () => opt("", ""),
+      addLabel: "Add a choice",
+      body: op => rows(bi("Choice", op.concat("label")),
+        fld.type === "radio" || fld.type === "checkbox" ? imageField("Picture (optional)", op.concat("image")) : el("div"))
+    })));
+  }
+  // Show this question only when an earlier answer matches
+  const controllers = formFields.slice(0, idx).filter(x => ["select", "radio", "checkbox", "yesno"].indexOf(x.type) >= 0);
+  if (fld.type !== "heading" && controllers.length) {
+    const ctlOpts = [["", "Always show this question"]].concat(controllers.map(x => [x.id, "Only if: " + ((x.label && x.label.en) || "question")]));
+    const cur = (fld.showIf && fld.showIf.field) || "";
+    const ctl = controllers.find(x => x.id === cur);
+    const condRow = [field("Show this question", p.concat("showIfField"), { type: "select", options: ctlOpts })];
+    // keep showIf as { field, value }
+    const sel = condRow[0].querySelector("select");
+    sel.value = cur;
+    sel.addEventListener("change", () => {
+      const f2 = get(p);
+      if (sel.value) f2.showIf = { field: sel.value, value: "" }; else delete f2.showIf;
+      delete f2.showIfField;
+      markDirty(true); renderPanel();
+    });
+    if (ctl) {
+      const vals = ctl.type === "yesno" ? [["yes", "Yes"], ["no", "No"]]
+        : (ctl.options || []).map(o => [o.id, (o.label && (o.label.en || o.label.ar)) || "choice"]);
+      condRow.push(field("…is answered", p.concat("showIf", "value"), { type: "select", options: [["", "Choose…"]].concat(vals) }));
+    } else condRow.push(el("div"));
+    box.push(rows(condRow));
+  }
+  return box;
+}
+
+function formEditor(f, fi) {
+  const path = ["forms", fi];
+  const det = el("details", { class: "form-box", open: openForms.has(f.id) });
+  det.addEventListener("toggle", () => det.open ? openForms.add(f.id) : openForms.delete(f.id));
+  const st = f.status || "draft";
+  det.append(el("summary", {}, (f.title && f.title.en) || "Untitled form",
+    el("span", { class: "badge " + (st === "open" ? "open" : st === "closed" ? "closed" : "") },
+      st === "open" ? "Open" : st === "closed" ? "Closed" : "Draft")));
+  const body = el("div", { class: "form-body" });
+  const link = el("input", { readonly: true, value: formLink(f), "aria-label": "Form link" });
+  body.append(
+    rows(field("Who can open it", path.concat("status"), { type: "select", wide: true, options: [
+      ["draft", "Draft: nobody can open the link"], ["open", "Open: parents can fill it in"], ["closed", "Closed: the link says the form is closed"]
+    ], onChange: () => renderPanel() })),
+    el("div", { class: "link-row" }, link,
+      el("button", { class: "btn ghost small", type: "button", on: { click: () => {
+        (navigator.clipboard ? navigator.clipboard.writeText(link.value) : Promise.reject()).then(
+          () => toast("Link copied. Send it to the parents.", "good"),
+          () => { link.select(); toast("Select the link and copy it."); });
+      } } }, "Copy link"),
+      el("a", { class: "btn ghost small", href: link.value, target: "_blank", rel: "noopener" }, "Open"),
+      GIDS[f.id] !== undefined ? el("a", { class: "btn ghost small", href: SHEET_URL + "#gid=" + GIDS[f.id], target: "_blank", rel: "noopener" }, "Answers sheet") : "",
+      el("button", { class: "btn ghost small", type: "button", on: { click: () => {
+        const copy = JSON.parse(JSON.stringify(f));
+        copy.id = newId("form"); copy.status = "draft";
+        copy.title.en = (copy.title.en || "") + " (copy)";
+        delete copy.sheetName; delete copy._cols;
+        // new ids, keeping the "show only if" links working
+        const map = {};
+        copy.fields.forEach(x => { const n = newId("q"); map[x.id] = n; x.id = n; (x.options || []).forEach(o => { const m = newId("o"); map[o.id] = m; o.id = m; }); });
+        copy.fields.forEach(x => { if (x.showIf) { x.showIf.field = map[x.showIf.field] || ""; if (map[x.showIf.value]) x.showIf.value = map[x.showIf.value]; } });
+        copy.offers.forEach(o => o.id = newId("of"));
+        C.forms.push(copy); openForms.add(copy.id); markDirty(true); renderPanel();
+      } } }, "Duplicate"),
+      el("button", { class: "btn danger small", type: "button", on: { click: () => {
+        if (confirm("Delete this form? The answers already in its sheet are kept.")) { C.forms.splice(fi, 1); markDirty(true); renderPanel(); }
+      } } }, "Delete form")),
+    f.sheetName ? el("p", { class: "hint" }, "Answers go to the sheet \"" + f.sheetName + "\".") :
+      el("p", { class: "hint" }, "Its sheet is created when you save it as Open or Closed. The sheet takes the form's English title."),
+    rows(bi("Form title", path.concat("title")), bi("Text under the title", path.concat("intro"), { type: "textarea", rows: 2 })),
+    el("h3", { class: "sub-title" }, "Offers & prices"),
+    hint("Only your team sees these. In the answers sheet, pick the offer for each child in the \"Offer\" column: the price fills in by itself, and \"Remaining\" is calculated after you type the amount paid. Hide an offer that is no longer running."),
+    el("div", { class: "nested" }, list(path.concat("offers"), {
+      title: o => (o.name || "New offer") + (o.price !== "" && o.price != null ? " · " + o.price : ""),
+      make: () => ({ id: newId("of"), name: "", price: "" }),
+      addLabel: "Add an offer",
+      body: op => rows(field("Offer name", op.concat("name")), field("Price", op.concat("price"), { type: "number" }))
+    })),
+    el("h3", { class: "sub-title" }, "Questions"),
+    hint("Change, add, hide or reorder questions any time. Hidden questions don't appear on the form."),
+    el("div", { class: "nested" }, list(path.concat("fields"), {
+      title: (x, i) => (i + 1) + ". " + (TYPE_NAME[x.type] || x.type) + ": " + ((x.label && (x.label.en || x.label.ar)) || "…") + (x.required ? " *" : "") + (x.showIf && x.showIf.field ? " (conditional)" : ""),
+      make: () => q("text", "", ""),
+      addLabel: "Add a question",
+      body: fp => fieldEditor(fp)
+    }))
+  );
+  det.append(body);
+  return det;
+}
+
+SECTIONS.forms = ["Registration forms", () => {
+  if (!Array.isArray(C.forms)) C.forms = [];
+  return [
+    hint("Forms you send to parents after they pay (for example for a camp). Each form has its own link and its own sheet. Nobody can find the link unless you send it, and Draft forms can't be opened at all."),
+    ...C.forms.map((f, i) => formEditor(f, i)),
+    el("button", { class: "btn", type: "button", on: { click: () => {
+      const f = formTemplate(); C.forms.push(f); openForms.add(f.id); markDirty(true); renderPanel();
+    } } }, "Add a form (starts with the usual camp questions)")
+  ];
+}];
+const ORDER = ["brand", "hero", "proof", "companies", "schools", "summer", "forms", "academy", "features", "faq", "gallery"];
 function renderSide() {
   const side = document.getElementById("side");
   side.innerHTML = "";
@@ -356,7 +568,7 @@ async function login(pw) {
   try {
     const j = await post({ action: "login", password: pw });
     if (!j.ok) throw new Error(j.error);
-    PW = pw; C = j.content;
+    PW = pw; C = j.content; C.forms = j.forms || []; GIDS = j.gids || {}; SHEET_URL = j.sheetUrl || "";
     try { sessionStorage.setItem("reshape_pw", pw); } catch (e) {}
     document.getElementById("sheetLink").href = j.sheetUrl;
     document.getElementById("login").style.display = "none";
@@ -376,11 +588,13 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   const btn = document.getElementById("saveBtn");
   btn.disabled = true; btn.textContent = "Saving…";
   try {
-    const j = await post({ action: "saveContent", password: PW, content: C });
+    const content = Object.assign({}, C); delete content.forms;
+    const j = await post({ action: "saveContent", password: PW, content: content, forms: C.forms || [] });
     if (!j.ok) {
       if (j.auth) { toast(j.error, "err"); return; }
       throw new Error(j.error);
     }
+    if (j.forms) { C.forms = j.forms; GIDS = j.gids || {}; if (current === "forms") renderPanel(); }
     markDirty(false);
     toast("Saved. Visitors will see the changes within a minute.", "good");
   } catch (e) {
