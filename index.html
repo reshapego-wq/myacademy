@@ -144,6 +144,9 @@
   .event .meta { display: flex; justify-content: space-between; gap: 10px; margin: 14px 0; font-size: .9rem; }
   .event .meta b { font-size: 1.05rem; }
   .event.closed { opacity: .65; }
+  .ev-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .offer { background: var(--accent); color: var(--ink); font-size: .76rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .ev-note { margin-top: 12px; font-size: .86rem; font-weight: 600; color: var(--primary); background: #eef3ee; border-inline-start: 3px solid var(--primary); padding: 8px 12px; border-radius: 6px; }
   .tag { display: inline-block; font-size: .8rem; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: #eee; color: var(--muted); align-self: flex-start; }
 
   /* Buttons */
@@ -368,6 +371,9 @@ function money(n) {
   if (n === "" || n === null || n === undefined || isNaN(Number(n))) return "";
   return Number(n).toLocaleString("en-US") + " " + loc(content.brand.currency);
 }
+// items hidden from the admin page are skipped
+function vis(arr) { return (arr || []).filter(x => !(x && typeof x === "object" && x.hidden)); }
+function urlOf(x) { return typeof x === "string" ? x : (x && x.url) || ""; }
 function digits(s) { return String(s || "").replace(/\D/g, ""); }
 // WhatsApp needs the international number without + or 00: 201222470149
 function waNumber(s) {
@@ -390,7 +396,7 @@ function formFields(kind) {
     { k: "childName", req: 1 }, { k: "birthDate", type: "date", req: 1 },
     { k: "parentName", req: 1 }, { k: "phone", type: "tel", req: 1 },
     { k: "email", type: "email" }, { k: "school" },
-    { k: "group", type: "select", wide: 1, options: (c.academy.groups || []).map(g => ({
+    { k: "group", type: "select", wide: 1, options: vis(c.academy.groups).map(g => ({
         v: g.id, l: t.ages + " " + g.ages + ", " + loc(g.days) + " " + (g.time || "") })).concat([{ v: "", l: t.notSure }]) },
     { k: "playedBefore", type: "select", options: [{ v: "Yes", l: t.yes }, { v: "No", l: t.no }] },
     { k: "health", type: "textarea", wide: 1 }
@@ -399,7 +405,7 @@ function formFields(kind) {
     { k: "schoolName", req: 1 }, { k: "contactName", req: 1 },
     { k: "role" }, { k: "phone", type: "tel", req: 1 },
     { k: "email", type: "email" },
-    { k: "eventType", type: "select", req: 1, options: (c.schools.eventTypes || []).map(x => ({ v: x.id, l: loc(x.name) })) },
+    { k: "eventType", type: "select", req: 1, options: vis(c.schools.eventTypes).map(x => ({ v: x.id, l: loc(x.name) })) },
     { k: "preferredDate", type: "date" }, { k: "students", type: "number" },
     { k: "ages", wide: 1 }, { k: "notes", type: "textarea", wide: 1 }
   ];
@@ -407,7 +413,7 @@ function formFields(kind) {
     { k: "companyName", req: 1 }, { k: "contactName", req: 1 },
     { k: "role" }, { k: "phone", type: "tel", req: 1 },
     { k: "email", type: "email" },
-    { k: "eventType", type: "select", req: 1, options: ((c.companies || {}).eventTypes || []).map(x => ({ v: x.id, l: loc(x.name) })) },
+    { k: "eventType", type: "select", req: 1, options: vis((c.companies || {}).eventTypes).map(x => ({ v: x.id, l: loc(x.name) })) },
     { k: "preferredDate", type: "date" }, { k: "people", type: "number" },
     { k: "venue", wide: 1 }, { k: "notes", type: "textarea", wide: 1 }
   ];
@@ -419,7 +425,7 @@ function formFields(kind) {
     { k: "notes", type: "textarea", wide: 1 }
   ];
 }
-function openEvents() { return (content.summer.events || []).filter(e => e.open !== false); }
+function openEvents() { return vis(content.summer.events).filter(e => e.open !== false); }
 
 function fieldHtml(kind, f) {
   const t = T[lang], id = kind + "-" + f.k;
@@ -476,7 +482,7 @@ function render() {
   let h = "";
 
   // ---- Hero: who we are + the four programs, with real photos
-  const imgs = (c.hero.images || []).map(safeUrl).filter(Boolean).slice(0, 4);
+  const imgs = vis(c.hero.images).map(urlOf).map(safeUrl).filter(Boolean).slice(0, 4);
   const pathLink = (k, href, tab) => '<a class="path" href="' + href + '"' + (tab ? ' data-evtab="' + tab + '"' : "") + "><small>" + esc(t.paths[k][0]) +
     "</small><b>" + esc(t.paths[k][1]) + "</b><span>" + esc(t.paths[k][2]) + "</span></a>";
   h += '<section class="hero" id="top"><div class="wrap"><div class="hero-grid"><div>' +
@@ -489,8 +495,8 @@ function render() {
        "</div></div></section>";
 
   // ---- Numbers & clients (only if filled in from the admin page)
-  const stats = (c.stats || []).filter(x => x.value);
-  const clients = (c.clients || []).filter(x => x.name || safeUrl(x.logo));
+  const stats = vis(c.stats).filter(x => x.value);
+  const clients = vis(c.clients).filter(x => x.name || safeUrl(x.logo));
   if (stats.length || clients.length) {
     h += '<section class="strip"><div class="wrap">' +
       (stats.length ? '<div class="stats">' + stats.map(x => '<div class="stat"><b>' + esc(x.value) + "</b><span>" + esc(loc(x.label)) + "</span></div>").join("") + "</div>" : "") +
@@ -502,7 +508,7 @@ function render() {
 
   // ---- Events (schools / companies)
   const evPanel = (kind, data) => {
-    const types = (data && data.eventTypes) || [];
+    const types = vis(data && data.eventTypes);
     return '<div class="evpanel" id="panel-' + kind + '" role="tabpanel"' + (evTab === kind ? "" : " hidden") + '><div class="split"><div>' +
       '<p class="lead-p" style="color:var(--muted);margin-bottom:18px;font-size:1.04rem">' + esc(loc(data && data.intro)) + "</p>" +
       (types.length ? '<ul class="types">' + types.map(x => "<li><b>" + esc(loc(x.name)) + "</b><span>" + esc(loc(x.desc)) + "</span></li>").join("") + "</ul>" : "") +
@@ -514,12 +520,15 @@ function render() {
     evPanel("schools", c.schools) + evPanel("companies", c.companies) + "</div></section>";
 
   // ---- Summer
-  const evs = c.summer.events || [];
+  const evs = vis(c.summer.events);
   h += '<section class="block" id="summer"><div class="wrap"><div class="sec-head"><h2>' + esc(t.summerTitle) + "</h2><p>" + esc(loc(c.summer.intro)) + "</p></div>";
   if (evs.length) {
     h += '<div class="events">' + evs.map(e => {
       const open = e.open !== false;
-      return '<article class="event' + (open ? "" : " closed") + '"><div class="date">' + esc(loc(e.dates)) + "</div><h3>" + esc(loc(e.name)) + "</h3><p>" + esc(loc(e.desc)) + "</p>" +
+      return '<article class="event' + (open ? "" : " closed") + '">' +
+        '<div class="ev-top"><div class="date">' + esc(loc(e.dates)) + "</div>" + (loc(e.badge) ? '<span class="offer">' + esc(loc(e.badge)) + "</span>" : "") + "</div>" +
+        "<h3>" + esc(loc(e.name)) + "</h3><p>" + esc(loc(e.desc)) + "</p>" +
+        (loc(e.note) ? '<div class="ev-note">' + esc(loc(e.note)) + "</div>" : "") +
         (e.ages || money(e.price) ? '<div class="meta"><span>' + (e.ages ? esc(t.ages) + " " + esc(e.ages) : "") + "</span><b>" + esc(money(e.price)) + "</b></div>" : '<div style="height:14px"></div>') +
         (open ? '<button class="btn" type="button" data-pick="' + esc(e.id) + '">' + esc(t.registerFor) + "</button>" : '<span class="tag">' + esc(t.full) + "</span>") +
         "</article>";
@@ -528,7 +537,7 @@ function render() {
   h += '<div style="max-width:640px">' + (openEvents().length ? formHtml("summer") : '<div class="closed-box">' + esc(t.noSummer) + "</div>") + "</div></div></section>";
 
   // ---- Academy
-  const groups = c.academy.groups || [];
+  const groups = vis(c.academy.groups);
   h += '<section class="block" id="academy"><div class="wrap split"><div><div class="sec-head"><h2>' + esc(t.academyTitle) + "</h2><p>" + esc(loc(c.academy.intro)) + "</p></div>" +
     (groups.length ? '<ul class="groups">' + groups.map(g =>
       '<li><div class="age">' + esc(g.ages) + "<small>" + esc(t.agesShort) + '</small></div><div class="g-info"><b>' + esc(loc(g.days)) + (g.time ? ", " + esc(g.time) : "") +
@@ -536,22 +545,22 @@ function render() {
     "</div><div>" + (c.academy.open === false ? '<div class="closed-box">' + esc(t.academyClosed) + "</div>" : formHtml("academy")) + "</div></div></section>";
 
   // ---- Why us
-  if ((c.features || []).length) {
+  if (vis(c.features).length) {
     h += '<section class="block"><div class="wrap"><div class="sec-head"><h2>' + esc(t.why.replace("{name}", b.name)) + '</h2></div><div class="features">' +
-      c.features.map(f => '<div class="feature"><h3>' + esc(loc(f.title)) + "</h3><p>" + esc(loc(f.text)) + "</p></div>").join("") + "</div></div></section>";
+      vis(c.features).map(f => '<div class="feature"><h3>' + esc(loc(f.title)) + "</h3><p>" + esc(loc(f.text)) + "</p></div>").join("") + "</div></div></section>";
   }
 
   // ---- Gallery
-  const pics = (c.gallery || []).map(safeUrl).filter(Boolean);
+  const pics = vis(c.gallery).map(urlOf).map(safeUrl).filter(Boolean);
   if (pics.length) {
     h += '<section class="block"><div class="wrap"><div class="sec-head"><h2>' + esc(t.galleryTitle) + '</h2></div><div class="gallery">' +
       pics.map(p => '<img loading="lazy" alt="" src="' + esc(p) + '" onerror="this.remove()">').join("") + "</div></div></section>";
   }
 
   // ---- FAQ
-  if ((c.faq || []).length) {
+  if (vis(c.faq).length) {
     h += '<section class="block" id="faq"><div class="wrap"><div class="sec-head"><h2>' + esc(t.faqTitle) + '</h2></div><div class="faq">' +
-      c.faq.map(q => "<details><summary>" + esc(loc(q.q)) + "</summary><p>" + esc(loc(q.a)) + "</p></details>").join("") + "</div></div></section>";
+      vis(c.faq).map(q => "<details><summary>" + esc(loc(q.q)) + "</summary><p>" + esc(loc(q.a)) + "</p></details>").join("") + "</div></div></section>";
   }
 
   // ---- Contact
