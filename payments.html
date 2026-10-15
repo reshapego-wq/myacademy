@@ -95,6 +95,10 @@
   .saving.err { color: var(--danger); }
   .cancel { display: flex; align-items: center; gap: 4px; font-size: .75rem; color: var(--muted); margin-top: 4px; cursor: pointer; }
   .empty { padding: 26px; text-align: center; color: var(--muted); }
+  .last { display: block; font-size: .7rem; color: var(--muted); margin-top: 3px; white-space: nowrap; }
+  .hist-btn { border: 0; background: none; color: var(--primary); font-size: .75rem; font-weight: 700; cursor: pointer; padding: 0; }
+  tr.hist td { background: #fafbf8; font-size: .8rem; white-space: pre-line; color: var(--muted); }
+  .toolbar select { padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
   #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 20px; border-radius: 8px; display: none; z-index: 50; max-width: 90vw; }
   #toast.err { background: var(--danger); }
 
@@ -126,6 +130,8 @@
 <div id="login">
   <form class="login-box" id="loginForm">
     <h1>Payments report</h1>
+    <label for="nm">Your name</label>
+    <input id="nm" type="text" autocomplete="username" style="margin-bottom:12px">
     <label for="pw">Password</label>
     <input id="pw" type="password" autocomplete="current-password">
     <button class="btn" type="submit" id="loginBtn">Sign in</button>
@@ -138,6 +144,7 @@
     <img id="logo" alt="">
     <h1>Payments</h1>
     <select id="formSel" aria-label="Camp or event"></select>
+    <span id="me" class="muted" style="font-size:.82rem"></span>
     <div class="right">
       <button class="btn ghost" type="button" id="refreshBtn">Refresh</button>
       <button class="btn" type="button" id="printBtn">Print</button>
@@ -151,8 +158,8 @@
 <script src="config.js"></script>
 <script>
 const API = window.RESHAPE_API || "";
-let PW = "", FORMS = [], BRAND = {}, CUR = "EGP", R = null;   // R = { form, rows }
-let filter = "all", search = "";
+let PW = "", NAME = "", USER = "", FORMS = [], BRAND = {}, CUR = "EGP", R = null;   // R = { form, rows }
+let filter = "all", search = "", who = "";   // who = responsible filter
 
 function esc(v) { return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
 function en(o) { return (o && (o.en || o.ar)) || ""; }
@@ -160,7 +167,7 @@ function money(n) { return n == null ? "–" : Math.round(n).toLocaleString("en-
 function today() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
 let tt;
 function toast(m, k) { const t = document.getElementById("toast"); t.textContent = m; t.className = k || ""; t.style.display = "block"; clearTimeout(tt); tt = setTimeout(() => t.style.display = "none", k === "err" ? 7000 : 3000); }
-async function post(body) { const r = await fetch(API, { method: "POST", body: JSON.stringify(body) }); return r.json(); }
+async function post(body) { body.name = NAME; const r = await fetch(API, { method: "POST", body: JSON.stringify(body) }); return r.json(); }
 
 // ---------- which answers to use for name / phone ----------
 function keyFields() {
@@ -185,9 +192,12 @@ function render() {
     '<section class="regs"><h3>All registrations</h3><p class="hint no-print">Choose the offer, type what was paid, the next due date and the method. Each change is saved to the sheet straight away. Status is worked out by itself.</p>' +
     '<div class="toolbar"><input type="search" id="search" placeholder="Search name or phone" value="' + esc(search) + '">' +
     [["all", "All"], ["owing", "Still owe"], ["paid", "Paid"], ["nooffer", "No offer"], ["cancelled", "Cancelled"]]
-      .map(([v, l]) => '<button class="chip" type="button" data-filter="' + v + '" aria-pressed="' + (filter === v) + '">' + l + "</button>").join("") + "</div>" +
+      .map(([v, l]) => '<button class="chip" type="button" data-filter="' + v + '" aria-pressed="' + (filter === v) + '">' + l + "</button>").join("") +
+    '<select id="whoSel" aria-label="Responsible"><option value="">Everyone</option>' + (USER !== "Admin" ? '<option value="@me"' + (who === "@me" ? " selected" : "") + ">Only mine</option>" : "") +
+      (R.form.team || []).map(n => '<option' + (who === n ? " selected" : "") + ">" + esc(n) + "</option>").join("") +
+      '<option value="@none"' + (who === "@none" ? " selected" : "") + ">Nobody responsible</option></select>" + "</div>" +
     '<div class="tbl-wrap"><table class="reg"><thead><tr><th>#</th><th>Received</th><th>Child</th>' + (k.parent ? "<th>Parent</th>" : "") +
-    '<th>Phone</th><th>Offer</th><th class="num">Price</th><th class="num">Paid</th><th class="num">Remaining</th><th>Due date</th><th>Method</th><th>Status</th><th>Notes</th><th class="no-print"></th></tr></thead><tbody id="regBody"></tbody></table></div></section>';
+    '<th>Phone</th><th>Offer</th><th class="num">Price</th><th class="num">Paid</th><th class="num">Remaining</th><th>Due date</th><th>Method</th><th>Responsible</th><th>Status</th><th>Notes</th><th class="no-print"></th></tr></thead><tbody id="regBody"></tbody></table></div></section>';
   renderSummary();
   drawRows();
 }
@@ -231,10 +241,30 @@ function renderSummary() {
 
   const due = owing.slice().sort((a, b) => (a.due || "9999") < (b.due || "9999") ? -1 : 1);
   h += '<section><h3>Payments still due</h3><p class="hint">Sorted by due date. Red means the date has passed.</p><div class="tbl-wrap">' +
-    (due.length ? "<table><thead><tr><th>Child</th><th>Phone</th><th>Offer</th><th class=\"num\">Remaining</th><th>Due date</th></tr></thead><tbody>" +
-      due.map(r => "<tr><td>" + esc(ans(r, k.child)) + '</td><td dir="ltr">' + esc(ans(r, k.phone)) + "</td><td>" + esc(r.offer) +
+    (due.length ? "<table><thead><tr><th>Child</th><th>Phone</th><th>Responsible</th><th class=\"num\">Remaining</th><th>Due date</th></tr></thead><tbody>" +
+      due.map(r => "<tr><td>" + esc(ans(r, k.child)) + '</td><td dir="ltr">' + esc(ans(r, k.phone)) + "</td><td>" + (r.responsible ? esc(r.responsible) : '<span class="muted">nobody</span>') +
         '</td><td class="num">' + money(r.remaining) + '</td><td class="' + (isOverdue(r) ? "over" : r.due ? "" : "muted") + '">' + esc(r.due || "no date yet") + (isOverdue(r) ? " (overdue)" : "") + "</td></tr>").join("") +
       "</tbody></table>" : '<p class="empty">Nobody owes money right now.</p>') + "</div></section></div>";
+
+  // By team member: who collected what, and what is still owed on the children each person follows up
+  const names = [];
+  const addName = n => { if (n && names.indexOf(n) < 0) names.push(n); };
+  (f.team || []).forEach(addName);
+  rows.forEach(r => { addName(r.responsible); Object.keys(r.collectedBy || {}).forEach(addName); });
+  if (names.length) {
+    const line = (label, mine, collected) => {
+      const owe = mine.filter(r => r.remaining > 0), od = mine.filter(isOverdue);
+      return "<tr><td><b>" + esc(label) + '</b></td><td class="num">' + mine.length + '</td><td class="num">' + money(collected) +
+        '</td><td class="num">' + money(owe.reduce((s, r) => s + r.remaining, 0)) + " <span class=\"muted\">(" + owe.length + ")</span>" +
+        '</td><td class="num ' + (od.length ? "over" : "") + '">' + money(od.reduce((s, r) => s + r.remaining, 0)) + (od.length ? " (" + od.length + ")" : "") + "</td></tr>";
+    };
+    const unassigned = act.filter(r => !r.responsible);
+    h += '<section><h3>By team member</h3><p class="hint">"Collected" is the money each person entered. "Still owed" and "Overdue" are for the children they are responsible for following up. Cancelled children are not counted.</p>' +
+      '<div class="tbl-wrap"><table><thead><tr><th>Team member</th><th class="num">Children</th><th class="num">Collected</th><th class="num">Still owed (people)</th><th class="num">Overdue</th></tr></thead><tbody>' +
+      names.map(n => line(n, act.filter(r => r.responsible === n), act.reduce((s, r) => s + ((r.collectedBy || {})[n] || 0), 0))).join("") +
+      (unassigned.length ? line("Nobody responsible yet", unassigned, 0) : "") +
+      "</tbody></table></div></section>";
+  }
 
   // Camp details from the answers
   const choiceFields = f.fields.filter(x => !x.hidden && ["select", "radio", "checkbox", "yesno"].indexOf(x.type) >= 0);
@@ -280,6 +310,9 @@ function shownRows() {
     if (filter === "paid" && r.status !== "Paid") return false;
     if (filter === "nooffer" && !(isActive(r) && !r.offer)) return false;
     if (filter === "cancelled" && r.status !== "Cancelled") return false;
+    if (who === "@me" && r.responsible !== USER) return false;
+    if (who === "@none" && r.responsible) return false;
+    if (who && who[0] !== "@" && r.responsible !== who) return false;
     if (q && (ans(r, k.child) + " " + ans(r, k.parent) + " " + ans(r, k.phone)).toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
@@ -305,9 +338,12 @@ function drawRows() {
       '<td><input type="date" data-k="due" value="' + esc(r.due) + '" aria-label="Due date"></td>' +
       '<td><select data-k="method" aria-label="Payment method"><option value=""></option>' +
         f.methods.concat(r.method && f.methods.indexOf(r.method) < 0 ? [r.method] : []).map(m => '<option' + (m === r.method ? " selected" : "") + ">" + esc(m) + "</option>").join("") + "</select></td>" +
-      '<td><span class="pill ' + statusClass(r.status) + '" data-c="status">' + esc(statusText(r.status)) + '</span><label class="cancel"><input type="checkbox" data-k="cancelled"' + (r.status === "Cancelled" ? " checked" : "") + "> cancelled</label></td>" +
+      '<td><select data-k="responsible" aria-label="Responsible"><option value="">nobody</option>' +
+        (f.team || []).concat(r.responsible && (f.team || []).indexOf(r.responsible) < 0 ? [r.responsible] : [])
+          .map(n => '<option' + (n === r.responsible ? " selected" : "") + ">" + esc(n) + "</option>").join("") + "</select></td>" +
+      '<td><span class="pill ' + statusClass(r.status) + '" data-c="status">' + esc(statusText(r.status)) + '</span><span class="last" data-c="last">' + esc(r.lastBy ? "by " + r.lastBy : "") + "</span>" + '<label class="cancel"><input type="checkbox" data-k="cancelled"' + (r.status === "Cancelled" ? " checked" : "") + "> cancelled</label></td>" +
       '<td><input class="note" type="text" data-k="notes" value="' + esc(r.notes) + '" aria-label="Notes"></td>' +
-      '<td class="no-print"><span class="saving" id="sv-' + i + '"></span></td></tr>';
+      '<td class="no-print"><span class="saving" id="sv-' + i + '"></span>' + (r.log ? '<button class="hist-btn" type="button" data-hist="' + i + '">History</button>' : "") + "</td></tr>";
   }).join("");
 }
 
@@ -323,6 +359,16 @@ function updateRowCells(i) {
   rem.className = "num " + (isOverdue(r) ? "over" : "");
   const st = tr.querySelector('[data-c="status"]');
   st.className = "pill " + statusClass(r.status); st.textContent = statusText(r.status);
+  tr.querySelector('[data-c="last"]').textContent = r.lastBy ? "by " + r.lastBy : "";
+  const rs = tr.querySelector('[data-k="responsible"]');
+  if (rs && rs.value !== r.responsible && document.activeElement !== rs) {
+    if (![...rs.options].some(o => o.value === r.responsible)) rs.append(new Option(r.responsible, r.responsible));
+    rs.value = r.responsible;                       // set automatically on the first payment
+  }
+  const cell = tr.querySelector("td.no-print");
+  if (r.log && !cell.querySelector(".hist-btn")) cell.insertAdjacentHTML("beforeend", '<button class="hist-btn" type="button" data-hist="' + i + '">History</button>');
+  const open = tr.nextElementSibling;
+  if (open && open.classList.contains("hist")) open.firstChild.textContent = r.log;
 }
 async function saveRow(i) {
   if (busy[i]) { again[i] = true; return; }      // a save is running: save again with the newest values after it
@@ -330,7 +376,7 @@ async function saveRow(i) {
   const tr = document.querySelector('#regBody tr[data-i="' + i + '"]');
   const r = R.rows[i], sv = document.getElementById("sv-" + i);
   const val = k => tr.querySelector('[data-k="' + k + '"]');
-  const data = { offer: val("offer").value, paid: val("paid").value, due: val("due").value, method: val("method").value, notes: val("notes").value, cancelled: val("cancelled").checked };
+  const data = { offer: val("offer").value, paid: val("paid").value, due: val("due").value, method: val("method").value, notes: val("notes").value, cancelled: val("cancelled").checked, responsible: val("responsible").value };
   if (sv) { sv.className = "saving"; sv.textContent = "Saving…"; }
   try {
     const j = await post({ action: "savePayment", password: PW, id: R.form.id, row: r.row, received: r.received, data: data });
@@ -354,10 +400,20 @@ document.addEventListener("change", e => {
   if (tr && e.target.dataset.k) saveRow(Number(tr.dataset.i));
 });
 document.addEventListener("click", e => {
+  const hb = e.target.closest("[data-hist]");
+  if (hb) {   // show / hide the change history under the row
+    const tr = hb.closest("tr"), next = tr.nextElementSibling;
+    if (next && next.classList.contains("hist")) { next.remove(); hb.textContent = "History"; return; }
+    const row = document.createElement("tr"); row.className = "hist no-print";
+    const td = document.createElement("td"); td.colSpan = 20; td.textContent = R.rows[Number(hb.dataset.hist)].log;
+    row.append(td); tr.after(row); hb.textContent = "Hide history";
+    return;
+  }
   const c = e.target.closest("[data-filter]");
   if (c) { filter = c.dataset.filter; document.querySelectorAll("[data-filter]").forEach(b => b.setAttribute("aria-pressed", String(b === c))); drawRows(); }
 });
 document.addEventListener("input", e => { if (e.target.id === "search") { search = e.target.value; drawRows(); } });
+document.addEventListener("change", e => { if (e.target.id === "whoSel") { who = e.target.value; drawRows(); } });
 
 // ---------- loading ----------
 async function loadReport(id) {
@@ -377,10 +433,12 @@ async function login(pw) {
   const btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
   btn.disabled = true; btn.textContent = "Signing in…"; err.textContent = "";
   try {
+    NAME = document.getElementById("nm").value.trim() || NAME;
     const j = await post({ action: "staffLogin", password: pw });
     if (!j.ok) throw new Error(/Unknown action/.test(j.error || "") ? "The Apps Script is an older version. Ask the admin to deploy the new version." : j.error);
-    PW = pw; FORMS = j.forms || []; BRAND = j.brand || {}; CUR = (j.currency && j.currency.en) || "EGP";
-    try { sessionStorage.setItem("reshape_staff_pw", pw); } catch (e) {}
+    PW = pw; USER = j.user || NAME; FORMS = j.forms || [];
+    document.getElementById("me").textContent = "Signed in as " + USER; BRAND = j.brand || {}; CUR = (j.currency && j.currency.en) || "EGP";
+    try { sessionStorage.setItem("reshape_staff_pw", pw); sessionStorage.setItem("reshape_staff_name", NAME); } catch (e) {}
     if (/^#[0-9a-f]{6}$/i.test(BRAND.primary || "")) document.documentElement.style.setProperty("--primary", BRAND.primary);
     if (BRAND.logo) document.getElementById("logo").src = BRAND.logo;
     const sel = document.getElementById("formSel");
@@ -394,6 +452,7 @@ async function login(pw) {
     else loadReport(pick);
   } catch (e) {
     try { sessionStorage.removeItem("reshape_staff_pw"); } catch (x) {}
+    if (/Wrong/.test(e.message || "")) e.message = "Wrong name or password.";
     err.textContent = e instanceof TypeError ? "Can't reach the server. Check config.js and your internet." : e.message;
   } finally { btn.disabled = false; btn.textContent = "Sign in"; }
 }
@@ -406,7 +465,7 @@ document.getElementById("logoutBtn").addEventListener("click", () => { try { ses
 
 (function start() {
   if (!API || API.indexOf("PASTE_") === 0) { document.getElementById("loginErr").textContent = "Paste your Apps Script web app URL in config.js first."; document.getElementById("loginBtn").disabled = true; return; }
-  let saved = ""; try { saved = sessionStorage.getItem("reshape_staff_pw") || ""; } catch (e) {}
+  let saved = ""; try { saved = sessionStorage.getItem("reshape_staff_pw") || ""; NAME = sessionStorage.getItem("reshape_staff_name") || ""; } catch (e) {}
   if (saved) login(saved);
 })();
 </script>
