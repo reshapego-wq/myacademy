@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Registration form</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --primary: #123a5a; --accent: #f2b631; --chalk: #f6f7f2; --ink: #15231c; --muted: #56665d; --line: #dde3da; --surface: #fff; --danger: #b3261e; --ok: #1e7a46; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Alexandria", "Segoe UI", Tahoma, Arial, sans-serif; background: var(--chalk); color: var(--ink); font-size: 16px; line-height: 1.6; }
+  html[dir="rtl"] body { line-height: 1.8; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .bar { background: var(--surface); border-bottom: 1px solid var(--line); }
+  .bar .in { max-width: 820px; margin: 0 auto; padding: 0 20px; height: 64px; display: flex; align-items: center; gap: 12px; }
+  .bar img { height: 44px; width: auto; max-width: 180px; object-fit: contain; }
+  .bar b { font-weight: 800; }
+  .lang { margin-inline-start: auto; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); font: inherit; font-weight: 700; font-size: .88rem; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+  .lang:hover { background: var(--ink); color: #fff; }
+  .top { background: var(--primary); color: #fff; padding: 40px 0 76px; }
+  .top .in, main { max-width: 820px; margin: 0 auto; padding: 0 20px; }
+  .top h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); line-height: 1.2; font-weight: 800; }
+  .top p { margin-top: 10px; opacity: .9; max-width: 60ch; }
+  main { margin-top: -48px; padding-bottom: 60px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; }
+  @media (max-width: 560px) { .card { padding: 20px; } }
+  .note { color: var(--muted); font-size: .85rem; margin-bottom: 8px; }
+
+  .q { padding: 18px 0; border-bottom: 1px solid var(--line); }
+  .q:last-of-type { border-bottom: 0; }
+  .q[hidden] { display: none; }
+  .q > label, .q > .lbl { display: block; font-weight: 700; margin-bottom: 4px; }
+  .req { color: var(--danger); }
+  .help { color: var(--muted); font-size: .88rem; margin-bottom: 10px; }
+  .section { padding: 26px 0 6px; border-bottom: 0; }
+  .section h2 { font-size: 1.15rem; color: var(--primary); }
+  .section:first-child { padding-top: 0; }
+  .chart { display: block; margin: 6px 0 12px; }
+  .chart img { max-width: 100%; max-height: 360px; border-radius: 10px; border: 1px solid var(--line); }
+  input[type=text], input[type=tel], input[type=email], input[type=number], input[type=date], select, textarea {
+    width: 100%; font: inherit; font-size: .95rem; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); margin-top: 6px; }
+  textarea { resize: vertical; min-height: 84px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  .q.bad input, .q.bad select, .q.bad textarea, .q.bad .choices { border-color: var(--danger); }
+  .q.bad .err { display: block; }
+  .err { display: none; color: var(--danger); font-size: .85rem; margin-top: 6px; }
+
+  .choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; border-radius: 10px; border: 1.5px solid transparent; }
+  .choices.pics { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .choice { position: relative; cursor: pointer; }
+  .choice input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .choice span { display: block; padding: 9px 16px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; font-size: .93rem; font-weight: 500; }
+  .choices.pics .choice span { border-radius: 12px; padding: 8px; text-align: center; height: 100%; }
+  .choice img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: contain; border-radius: 8px; margin-bottom: 6px; background: var(--chalk); }
+  .choice input:checked + span { border-color: var(--primary); background: #e9f0f6; color: var(--primary); font-weight: 700; box-shadow: inset 0 0 0 1px var(--primary); }
+  .choice input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+  .btn { display: block; width: 100%; font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 14px 22px; cursor: pointer; background: var(--primary); color: #fff; margin-top: 22px; }
+  .btn:disabled { opacity: .55; cursor: default; }
+  .btn.line { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+  .msg { margin-top: 12px; font-size: .9rem; min-height: 1.3em; color: var(--danger); }
+  .done { text-align: center; padding: 20px 0; }
+  .done b { display: block; font-size: 1.35rem; color: var(--ok); margin-bottom: 8px; }
+  .done p { color: var(--muted); max-width: 46ch; margin: 0 auto; }
+  .state { padding: 30px 0; text-align: center; color: var(--muted); }
+  .state a { color: var(--primary); font-weight: 700; }
+</style>
+</head>
+<body>
+<header class="bar"><div class="in">
+  <img id="logo" alt="" src="https://res.cloudinary.com/sxxuxdzy/image/upload/v1785748648/Reshape_Logo_pbcbku.jpg">
+  <b id="brandName">ReShape Egypt</b>
+  <button class="lang" id="langBtn" type="button">العربية</button>
+</div></header>
+<div class="top"><div class="in"><h1 id="title">&nbsp;</h1><p id="intro"></p></div></div>
+<main><div class="card" id="card"><div class="state">Loading…</div></div></main>
+
+<script src="config.js"></script>
+<script>
+const T = {
+  en: {
+    langBtn: "العربية", reqNote: "Questions marked * are required.", send: "Send", sending: "Sending…", choose: "Choose…",
+    yes: "Yes", no: "No", required: "Please answer this question.", badPhone: "Please check this phone number.",
+    badEmail: "Please check this email.", fix: "Please check the questions marked in red.",
+    doneTitle: "Thank you, your registration is complete", doneText: "We received your answers. We'll contact you if we need anything else.",
+    another: "Fill in for another child", anotherHint: "Your answers stay filled in, so you only change what's different.",
+    netErr: "We couldn't send the form. Check your internet connection and try again.", serverErr: "We couldn't send the form: ",
+    missing: "This form doesn't exist or isn't available yet.", closed: "This form is closed now.", contact: "Contact us on WhatsApp",
+    bigger: "Tap to see it bigger", noLink: "This link is incomplete. Please use the full link we sent you.",
+    notConfigured: "Almost ready: paste your Apps Script web app URL in config.js."
+  },
+  ar: {
+    langBtn: "English", reqNote: "الأسئلة التي عليها * مطلوبة.", send: "إرسال", sending: "جارٍ الإرسال…", choose: "اختر…",
+    yes: "نعم", no: "لا", required: "من فضلك أجب عن هذا السؤال.", badPhone: "من فضلك راجع رقم الهاتف.",
+    badEmail: "من فضلك راجع البريد الإلكتروني.", fix: "من فضلك راجع الأسئلة المحددة باللون الأحمر.",
+    doneTitle: "شكرًا لك، تم التسجيل بنجاح", doneText: "استلمنا إجاباتك، وسنتواصل معك إذا احتجنا أي شيء آخر.",
+    another: "املأ الاستمارة لطفل آخر", anotherHint: "ستبقى إجاباتك مكتوبة، فتغيّر المختلف فقط.",
+    netErr: "لم نتمكن من إرسال الاستمارة. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.", serverErr: "لم نتمكن من إرسال الاستمارة: ",
+    missing: "هذه الاستمارة غير موجودة أو غير متاحة بعد.", closed: "هذه الاستمارة مغلقة الآن.", contact: "تواصل معنا على واتساب",
+    bigger: "اضغط لرؤيتها بحجم أكبر", noLink: "هذا الرابط غير مكتمل. من فضلك استخدم الرابط كاملًا كما أرسلناه.",
+    notConfigured: "Almost ready: paste your Apps Script web app URL in config.js."
+  }
+};
+
+const API = window.RESHAPE_API || "";
+const FORM_ID = new URLSearchParams(location.search).get("f") || "";
+let lang = (() => { const q = new URLSearchParams(location.search).get("lang"); if (q === "ar" || q === "en") return q;
+  try { return localStorage.getItem("reshape_lang") === "ar" ? "ar" : "en"; } catch (e) { return "en"; } })();
+let data = null;           // server answer: { ok, form, brand, closed, missing }
+let answers = {};          // question id -> value (text, option id, "yes"/"no", or list of option ids)
+let sent = false;
+
+function esc(v) { return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+function safeUrl(u) { u = String(u || "").trim(); return /^https?:\/\//i.test(u) ? u : ""; }
+function loc(o) { return (o && (o[lang] || o.en || o.ar)) || ""; }
+function digits(s) { return String(s || "").replace(/\D/g, ""); }
+function waNumber(s) { let d = digits(s); if (d.startsWith("00")) d = d.slice(2); if (d.length === 11 && d.startsWith("01")) d = "2" + d; return d.length >= 10 ? d : ""; }
+
+// ---------- which questions are shown (same rule as the server) ----------
+function fieldsById() { const m = {}; data.form.fields.forEach(f => m[f.id] = f); return m; }
+function shown(f, byId, depth) {
+  if (!f.showIf || !f.showIf.field || !f.showIf.value) return true;
+  if ((depth || 0) > 10) return true;
+  const ctl = byId[f.showIf.field];
+  if (!ctl) return true;
+  if (!shown(ctl, byId, (depth || 0) + 1)) return false;
+  const v = answers[ctl.id];
+  return Array.isArray(v) ? v.indexOf(f.showIf.value) >= 0 : v === f.showIf.value;
+}
+function applyVisibility() {
+  const byId = fieldsById();
+  data.form.fields.forEach(f => { const el = document.getElementById("q-" + f.id); if (el) el.hidden = !shown(f, byId); });
+}
+
+// ---------- drawing ----------
+function questionHtml(f) {
+  const t = T[lang], id = "in-" + f.id, v = answers[f.id];
+  const label = esc(loc(f.label)) + (f.required ? ' <span class="req">*</span>' : "");
+  const help = loc(f.help) ? '<p class="help">' + esc(loc(f.help)) + "</p>" : "";
+  if (f.type === "heading") return '<div class="q section" id="q-' + f.id + '"><h2>' + esc(loc(f.label)) + "</h2>" + (loc(f.help) ? '<p class="help" style="margin-top:4px">' + esc(loc(f.help)) + "</p>" : "") + "</div>";
+  const pic = safeUrl(f.image) ? '<a class="chart" href="' + esc(safeUrl(f.image)) + '" target="_blank" rel="noopener" title="' + esc(t.bigger) + '"><img src="' + esc(safeUrl(f.image)) + '" alt=""></a>' : "";
+  let ctl = "";
+  const isChoice = f.type === "radio" || f.type === "checkbox" || f.type === "yesno";
+  if (f.type === "textarea") ctl = '<textarea id="' + id + '" data-q="' + f.id + '" rows="3">' + esc(v || "") + "</textarea>";
+  else if (f.type === "select") {
+    ctl = '<select id="' + id + '" data-q="' + f.id + '"><option value="">' + esc(t.choose) + "</option>" +
+      f.options.map(o => '<option value="' + esc(o.id) + '"' + (v === o.id ? " selected" : "") + ">" + esc(loc(o.label)) + "</option>").join("") + "</select>";
+  } else if (isChoice) {
+    const opts = f.type === "yesno" ? [{ id: "yes", label: { en: t.yes, ar: t.yes } }, { id: "no", label: { en: t.no, ar: t.no } }] : f.options;
+    const pics = opts.some(o => safeUrl(o.image));
+    const type = f.type === "checkbox" ? "checkbox" : "radio";
+    ctl = '<div class="choices' + (pics ? " pics" : "") + '" role="' + (type === "radio" ? "radiogroup" : "group") + '" aria-labelledby="l-' + f.id + '">' + opts.map(o => {
+      const on = type === "checkbox" ? Array.isArray(v) && v.indexOf(o.id) >= 0 : v === o.id;
+      return '<label class="choice"><input type="' + type + '" name="' + f.id + '" value="' + esc(o.id) + '" data-q="' + f.id + '"' + (on ? " checked" : "") + "><span>" +
+        (safeUrl(o.image) ? '<img src="' + esc(safeUrl(o.image)) + '" alt="">' : "") + esc(loc(o.label)) + "</span></label>";
+    }).join("") + "</div>";
+  } else {
+    const type = { phone: "tel", email: "email", number: "number", date: "date" }[f.type] || "text";
+    const extra = type === "tel" ? ' inputmode="tel" autocomplete="tel" dir="ltr"' : type === "email" ? ' autocomplete="email" dir="ltr"' : type === "number" ? ' inputmode="numeric"' : "";
+    ctl = '<input id="' + id + '" type="' + type + '" data-q="' + f.id + '" value="' + esc(v || "") + '"' + extra + ">";
+  }
+  return '<div class="q" id="q-' + f.id + '">' +
+    (isChoice ? '<span class="lbl" id="l-' + f.id + '">' + label + "</span>" : '<label for="' + id + '">' + label + "</label>") +
+    help + pic + ctl + '<span class="err"></span></div>';
+}
+
+function render() {
+  const t = T[lang];
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+  document.getElementById("langBtn").textContent = t.langBtn;
+  const card = document.getElementById("card");
+
+  if (!API || API.indexOf("PASTE_") === 0) { card.innerHTML = '<div class="state">' + esc(t.notConfigured) + "</div>"; return; }
+  if (!FORM_ID) { card.innerHTML = '<div class="state">' + esc(t.noLink) + "</div>"; return; }
+  if (!data) return;
+
+  const b = data.brand || {};
+  if (/^#[0-9a-f]{6}$/i.test(b.primary || "")) document.documentElement.style.setProperty("--primary", b.primary);
+  if (/^#[0-9a-f]{6}$/i.test(b.accent || "")) document.documentElement.style.setProperty("--accent", b.accent);
+  if (safeUrl(b.logo)) document.getElementById("logo").src = safeUrl(b.logo);
+  if (b.name) document.getElementById("brandName").textContent = b.name;
+
+  const wa = waNumber(b.whatsapp) ? ' <a href="https://wa.me/' + waNumber(b.whatsapp) + '" target="_blank" rel="noopener">' + esc(t.contact) + "</a>" : "";
+  if (!data.ok) {
+    document.getElementById("title").textContent = loc(data.title) || b.name || "";
+    document.getElementById("intro").textContent = "";
+    card.innerHTML = '<div class="state">' + esc(data.closed ? t.closed : t.missing) + wa + "</div>";
+    return;
+  }
+
+  const f = data.form;
+  document.title = loc(f.title);
+  document.getElementById("title").textContent = loc(f.title);
+  document.getElementById("intro").textContent = loc(f.intro);
+
+  if (sent) {
+    card.innerHTML = '<div class="done"><b>' + esc(t.doneTitle) + "</b><p>" + esc(t.doneText) + "</p>" +
+      '<button class="btn line" type="button" id="again">' + esc(t.another) + '</button><p class="help" style="margin-top:8px">' + esc(t.anotherHint) + "</p></div>";
+    document.getElementById("again").onclick = () => { sent = false; render(); window.scrollTo(0, 0); };
+    return;
+  }
+
+  card.innerHTML = '<form id="theForm" novalidate><p class="note">' + esc(t.reqNote) + "</p>" +
+    f.fields.map(questionHtml).join("") +
+    '<input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">' +
+    '<button class="btn" type="submit">' + esc(t.send) + '</button><p class="msg" role="status" aria-live="polite"></p></form>';
+  applyVisibility();
+}
+
+// ---------- answers ----------
+function readAnswer(e) {
+  const el = e.target, qid = el.dataset && el.dataset.q;
+  if (!qid) return;
+  const f = fieldsById()[qid];
+  if (f.type === "checkbox") {
+    answers[qid] = Array.from(document.querySelectorAll('input[name="' + qid + '"]:checked')).map(x => x.value);
+  } else answers[qid] = el.value;
+  const box = document.getElementById("q-" + qid);
+  if (box) box.classList.remove("bad");
+  applyVisibility();
+}
+document.addEventListener("input", readAnswer);
+document.addEventListener("change", readAnswer);
+
+document.addEventListener("submit", async e => {
+  if (e.target.id !== "theForm") return;
+  e.preventDefault();
+  const t = T[lang], form = e.target, msg = form.querySelector(".msg"), btn = form.querySelector("button[type=submit]");
+  msg.textContent = "";
+  const byId = fieldsById();
+  let firstBad = null;
+  const out = {};
+  data.form.fields.forEach(f => {
+    if (f.type === "heading" || !shown(f, byId)) return;
+    const box = document.getElementById("q-" + f.id), err = box.querySelector(".err");
+    const v = answers[f.id];
+    const empty = Array.isArray(v) ? !v.length : !String(v || "").trim();
+    let problem = "";
+    if (f.required && empty) problem = t.required;
+    else if (!empty && f.type === "phone" && digits(v).length < 8) problem = t.badPhone;
+    else if (!empty && f.type === "email" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v).trim())) problem = t.badEmail;
+    box.classList.toggle("bad", !!problem);
+    err.textContent = problem;
+    if (problem && !firstBad) firstBad = box;
+    if (!empty) out[f.id] = Array.isArray(v) ? v : String(v).trim();
+  });
+  if (firstBad) {
+    msg.textContent = t.fix;
+    firstBad.scrollIntoView({ block: "center" });
+    const focusable = firstBad.querySelector("input, select, textarea");
+    if (focusable) focusable.focus({ preventScroll: true });
+    return;
+  }
+  btn.disabled = true; btn.textContent = t.sending;
+  try {
+    const r = await fetch(API, { method: "POST", body: JSON.stringify({ action: "submitForm", id: FORM_ID, lang: lang, website: form.elements.website.value, data: out }) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "error");
+    sent = true; render(); window.scrollTo(0, 0);
+  } catch (err) {
+    msg.textContent = err instanceof TypeError ? t.netErr : t.serverErr + err.message;
+    btn.disabled = false; btn.textContent = t.send;
+  }
+});
+
+document.getElementById("langBtn").addEventListener("click", () => {
+  lang = lang === "en" ? "ar" : "en";
+  try { localStorage.setItem("reshape_lang", lang); } catch (e) {}
+  render();
+});
+
+(function start() {
+  render();
+  if (!API || API.indexOf("PASTE_") === 0 || !FORM_ID) return;
+  fetch(API + "?action=form&id=" + encodeURIComponent(FORM_ID))
+    .then(r => r.json())
+    .then(j => { data = j; render(); })
+    .catch(() => { document.getElementById("card").innerHTML = '<div class="state">' + esc(T[lang].netErr) + "</div>"; });
+})();
+</script>
+</body>
+</html>
