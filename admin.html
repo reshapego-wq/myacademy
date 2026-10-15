@@ -104,6 +104,11 @@
     <button class="btn" id="saveBtn" type="button">Save changes</button>
     <button class="btn ghost" id="logoutBtn" type="button">Sign out</button>
   </div></div>
+  <div id="oldWarn" style="display:none;max-width:1160px;margin:16px auto 0;background:#fbe9e7;color:#b3261e;border:1px solid #efc9c5;border-radius:10px;padding:12px 16px;font-size:.9rem">
+    <b>Your Apps Script is still the old version.</b> Registration forms and photo uploads won't be saved until you update it:
+    in Apps Script paste the new Code.gs and Save, run <b>setup</b> once and allow the permissions, then
+    Deploy &gt; Manage deployments &gt; pencil &gt; Version: <b>New version</b> &gt; Deploy. Then refresh this page.
+  </div>
   <div class="layout">
     <nav class="side" id="side"></nav>
     <div class="panel" id="panel"></div>
@@ -114,7 +119,8 @@
 <script src="config.js"></script>
 <script>
 const API = window.RESHAPE_API || "";
-let C = null, PW = "", dirty = false, current = "brand", uid = 0;
+let C = null, PW = "", dirty = false, current = "brand", uid = 0, OLD_BACKEND = false;
+const OLD_MSG = "Your Apps Script is still the old version, so forms and photo uploads don't work yet. In Apps Script: paste the new Code.gs, Save, then Deploy > Manage deployments > pencil > Version: New version > Deploy.";
 
 // ---------------- helpers ----------------
 function el(tag, attrs, ...kids) {
@@ -194,9 +200,57 @@ function bi(label, path, opt) {
 function imageField(label, path, help) {
   const img = el("img", { class: "preview", alt: "" });
   const show = v => { if (/^https?:\/\//.test(v || "")) { img.src = v; img.style.display = "block"; } else img.style.display = "none"; };
-  const f = field(label, path, { wide: true, help, placeholder: "https://…", onInput: show });
-  f.append(img); show(get(path));
+  const f = field(label, path, { wide: true, help, placeholder: "https://…  or upload a photo", onInput: show });
+  const input = f.querySelector("input");
+  const picker = el("input", { type: "file", accept: "image/*", style: "display:none" });
+  const btn = el("button", { class: "btn ghost small", type: "button", on: { click: () => picker.click() } }, "Upload from device");
+  const clear = el("button", { class: "btn ghost small", type: "button", on: { click: () => { input.value = ""; set(path, ""); show(""); } } }, "Remove");
+  picker.addEventListener("change", async () => {
+    const file = picker.files[0];
+    picker.value = "";
+    if (!file) return;
+    btn.disabled = true; btn.textContent = "Uploading…";
+    try {
+      const url = await uploadPhoto(file);
+      input.value = url; set(path, url); show(url);
+      toast("Photo uploaded. Don't forget to save.", "good");
+    } catch (e) {
+      toast(e.message, "err");
+    } finally {
+      btn.disabled = false; btn.textContent = "Upload from device";
+    }
+  });
+  f.append(el("div", { style: "display:flex;gap:6px;margin-top:6px;flex-wrap:wrap" }, btn, clear), picker, img);
+  show(get(path));
   return f;
+}
+
+// Makes big photos smaller before uploading (faster page), keeps logos with transparency as PNG
+function shrinkPhoto(file) {
+  return new Promise((resolve, reject) => {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {  // SVG, GIF: upload as they are
+      const r = new FileReader(); r.onload = () => resolve({ data: r.result.split(",")[1], mime: file.type }); r.onerror = reject; r.readAsDataURL(file); return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      const max = 1600, scale = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const mime = file.type === "image/jpeg" ? "image/jpeg" : "image/png";
+      resolve({ data: c.toDataURL(mime, 0.85).split(",")[1], mime: mime });
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => reject(new Error("This file could not be read as a photo."));
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function uploadPhoto(file) {
+  if (file.size > 25 * 1024 * 1024) throw new Error("This photo is too large (over 25 MB).");
+  const p = await shrinkPhoto(file);
+  const j = await post({ action: "uploadImage", password: PW, name: file.name, mime: p.mime, data: p.data });
+  if (!j.ok) throw new Error(/Unknown action/.test(j.error || "") ? OLD_MSG : j.error);
+  return j.url;
 }
 function rows(...kids) { return el("div", { class: "rows" }, kids.flat()); }
 
@@ -569,6 +623,8 @@ async function login(pw) {
     const j = await post({ action: "login", password: pw });
     if (!j.ok) throw new Error(j.error);
     PW = pw; C = j.content; C.forms = j.forms || []; GIDS = j.gids || {}; SHEET_URL = j.sheetUrl || "";
+    OLD_BACKEND = !("forms" in j);
+    document.getElementById("oldWarn").style.display = OLD_BACKEND ? "block" : "none";
     try { sessionStorage.setItem("reshape_pw", pw); } catch (e) {}
     document.getElementById("sheetLink").href = j.sheetUrl;
     document.getElementById("login").style.display = "none";
@@ -594,7 +650,13 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
       if (j.auth) { toast(j.error, "err"); return; }
       throw new Error(j.error);
     }
-    if (j.forms) { C.forms = j.forms; GIDS = j.gids || {}; if (current === "forms") renderPanel(); }
+    if (!j.forms) {   // old Apps Script: page content saved, forms ignored
+      OLD_BACKEND = true;
+      document.getElementById("oldWarn").style.display = "block";
+      toast("The page was saved, but the forms were NOT. " + OLD_MSG, "err");
+      return;
+    }
+    C.forms = j.forms; GIDS = j.gids || {}; if (current === "forms") renderPanel();
     markDirty(false);
     toast("Saved. Visitors will see the changes within a minute.", "good");
   } catch (e) {
