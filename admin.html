@@ -181,7 +181,8 @@ function field(label, path, opt) {
     return el("div", { class: "fld" + (opt.wide ? " wide" : "") }, lab, input);
   }
   if (opt.type === "textarea") input = el("textarea", { id, rows: opt.rows || 3, dir: opt.dir });
-  else input = el("input", { id, type: opt.type || "text", dir: opt.dir, placeholder: opt.placeholder });
+  else input = el("input", { id, type: opt.type || "text", dir: opt.dir, placeholder: opt.placeholder,
+                             autocomplete: opt.type === "password" ? "new-password" : undefined });
   input.value = v == null ? "" : v;
   input.addEventListener("input", () => {
     set(path, opt.type === "number" ? (input.value === "" ? "" : Number(input.value)) : input.value);
@@ -621,7 +622,26 @@ SECTIONS.forms = ["Registration forms", () => {
     } } }, "Add a form (starts with the usual camp questions)")
   ];
 }];
-const ORDER = ["brand", "hero", "proof", "companies", "schools", "summer", "forms", "academy", "features", "faq", "gallery"];
+SECTIONS.team = ["Team (payments)", () => {
+  if (!Array.isArray(C.team)) C.team = [];
+  const link = new URL("payments.html", location.href).href;
+  return [
+    hint("Everyone who records payments gets their own account here. They sign in on the payments page with their name and password, so every payment shows who entered it. Use Hide to stop someone signing in: their history stays."),
+    el("div", { class: "link-row" }, el("input", { readonly: true, value: link, "aria-label": "Payments page link" }),
+      el("a", { class: "btn ghost small", href: link, target: "_blank", rel: "noopener" }, "Open payments page")),
+    list(["team"], {
+      title: m => (m.name || "New member") + (m.hasPassword || m.newPassword ? "" : "  (no password yet)"),
+      make: () => ({ id: "", name: "", hidden: false, hasPassword: false, newPassword: "" }),
+      addLabel: "Add a team member",
+      body: p => rows(
+        field("Name (they type it to sign in)", p.concat("name")),
+        field(get(p).hasPassword ? "New password (leave empty to keep the current one)" : "Password", p.concat("newPassword"),
+          { type: "password", help: "at least 6 characters", placeholder: get(p).hasPassword ? "••••••  (unchanged)" : "" }))
+    }),
+    hint("Passwords are never shown again after saving. If someone forgets theirs, type a new one here and save. You can also open the payments page with the admin password: your changes are then recorded as \"Admin\".")
+  ];
+}];
+const ORDER = ["brand", "hero", "proof", "companies", "schools", "summer", "forms", "team", "academy", "features", "faq", "gallery"];
 function renderSide() {
   const side = document.getElementById("side");
   side.innerHTML = "";
@@ -642,7 +662,7 @@ async function login(pw) {
   try {
     const j = await post({ action: "login", password: pw });
     if (!j.ok) throw new Error(j.error);
-    PW = pw; C = j.content; C.forms = j.forms || []; GIDS = j.gids || {}; SHEET_URL = j.sheetUrl || "";
+    PW = pw; C = j.content; C.forms = j.forms || []; C.team = j.team || []; GIDS = j.gids || {}; SHEET_URL = j.sheetUrl || "";
     OLD_BACKEND = !("forms" in j);
     document.getElementById("oldWarn").style.display = OLD_BACKEND ? "block" : "none";
     try { sessionStorage.setItem("reshape_pw", pw); } catch (e) {}
@@ -664,8 +684,8 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
   const btn = document.getElementById("saveBtn");
   btn.disabled = true; btn.textContent = "Saving…";
   try {
-    const content = Object.assign({}, C); delete content.forms;
-    const j = await post({ action: "saveContent", password: PW, content: content, forms: C.forms || [] });
+    const content = Object.assign({}, C); delete content.forms; delete content.team;
+    const j = await post({ action: "saveContent", password: PW, content: content, forms: C.forms || [], team: C.team || [] });
     if (!j.ok) {
       if (j.auth) { toast(j.error, "err"); return; }
       throw new Error(j.error);
@@ -676,7 +696,8 @@ document.getElementById("saveBtn").addEventListener("click", async () => {
       toast("The page was saved, but the forms were NOT. " + OLD_MSG, "err");
       return;
     }
-    C.forms = j.forms; GIDS = j.gids || {}; if (current === "forms") renderPanel();
+    C.forms = j.forms; GIDS = j.gids || {}; if (j.team) C.team = j.team;
+    if (current === "forms" || current === "team") renderPanel();
     markDirty(false);
     toast("Saved. Visitors will see the changes within a minute.", "good");
   } catch (e) {
