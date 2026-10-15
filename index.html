@@ -39,7 +39,7 @@
   .bar { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
   .bar .wrap { display: flex; align-items: center; gap: 18px; height: 64px; }
   .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 800; font-size: 1.05rem; }
-  .brand img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+  .brand img { height: 44px !important; width: auto !important; max-width: 180px; object-fit: contain !important; border-radius: 0; }
   .links { display: flex; gap: 22px; margin-inline-start: auto; }
   .links a { text-decoration: none; font-size: .92rem; font-weight: 500; color: var(--muted); }
   .links a:hover { color: var(--ink); }
@@ -56,12 +56,11 @@
   .hero h1 { font-size: clamp(2.1rem, 5vw, 3.7rem); line-height: 1.08; font-weight: 800; max-width: 16ch; letter-spacing: -0.01em; }
   html[dir="rtl"] .hero h1 { line-height: 1.35; letter-spacing: 0; }
   .hero .lead { font-size: clamp(1.02rem, 1.8vw, 1.15rem); max-width: 50ch; margin-top: 18px; opacity: .92; }
-  .mosaic { display: grid; grid-template-columns: 1.15fr 1fr; grid-template-rows: 170px 170px; gap: 10px; }
+  .mosaic { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 170px; gap: 10px; }
   .mosaic img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; background: rgba(255,255,255,.08); }
-  .mosaic img:first-child { grid-row: span 2; }
-  .mosaic.n1 { grid-template-columns: 1fr; grid-template-rows: 340px; }
-  .mosaic.n2 { grid-template-rows: 340px; } .mosaic.n2 img:first-child { grid-row: auto; }
-  .mosaic.n3 img:nth-child(3) { grid-column: 2; }
+  .mosaic.n1 { grid-template-columns: 1fr; grid-auto-rows: 300px; }
+  .mosaic.n2 { grid-auto-rows: 240px; }
+  .mosaic.n3 img:first-child { grid-column: span 2; }
 
   .programs-label { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .75;
                     margin: 48px 0 12px; display: flex; align-items: center; gap: 12px; }
@@ -78,10 +77,9 @@
   @media (max-width: 560px) {
     .hero { padding: 40px 0 36px; }
     .paths { grid-template-columns: 1fr; }
-    .mosaic, .mosaic.n2, .mosaic.n3 { grid-template-columns: repeat(3, 1fr); grid-template-rows: 120px; }
-    .mosaic img:first-child, .mosaic.n3 img:nth-child(3) { grid-row: auto; grid-column: auto; }
-    .mosaic img:nth-child(4) { display: none; }
-    .mosaic.n1 { grid-template-columns: 1fr; grid-template-rows: 200px; }
+    .mosaic { grid-auto-rows: 120px; }
+    .mosaic.n1 { grid-auto-rows: 200px; }
+    .mosaic.n2 { grid-auto-rows: 150px; }
   }
 
   /* ---------- Numbers & clients ---------- */
@@ -371,6 +369,17 @@ function money(n) {
   return Number(n).toLocaleString("en-US") + " " + loc(content.brand.currency);
 }
 function digits(s) { return String(s || "").replace(/\D/g, ""); }
+// WhatsApp needs the international number without + or 00: 201222470149
+function waNumber(s) {
+  let d = digits(s);
+  if (d.startsWith("00")) d = d.slice(2);
+  if (d.length === 11 && d.startsWith("01")) d = "2" + d;      // Egyptian mobile written as 01xxxxxxxxx
+  return d.length >= 10 ? d : "";
+}
+function waLink(s) {
+  const msg = lang === "ar" ? "مرحبًا، أريد معرفة المزيد عن برامج Reshape" : "Hello, I'd like to know more about Reshape programs";
+  return "https://wa.me/" + waNumber(s) + "?text=" + encodeURIComponent(msg);
+}
 
 // ============================================================
 // Form definitions
@@ -473,7 +482,7 @@ function render() {
   h += '<section class="hero" id="top"><div class="wrap"><div class="hero-grid"><div>' +
        (loc(c.hero.tagline) ? '<span class="tagline">' + esc(loc(c.hero.tagline)) + "</span>" : "") +
        "<h1>" + esc(loc(c.hero.title)) + '</h1><p class="lead">' + esc(loc(c.hero.subtitle)) + "</p></div>" +
-       (imgs.length ? '<div class="mosaic n' + imgs.length + '">' + imgs.map(u => '<img alt="" src="' + esc(u) + '">').join("") + "</div>" : "") +
+       (imgs.length ? '<div class="mosaic n' + imgs.length + '">' + imgs.map(u => '<img alt="" src="' + esc(u) + '" onerror="fixMosaic(this)">').join("") + "</div>" : "") +
        '</div><div class="programs-label">' + esc(t.programs) + '</div><div class="paths">' +
        pathLink("companies", "#events", "companies") + pathLink("schools", "#events", "schools") +
        pathLink("summer", "#summer") + pathLink("academy", "#academy") +
@@ -486,7 +495,7 @@ function render() {
     h += '<section class="strip"><div class="wrap">' +
       (stats.length ? '<div class="stats">' + stats.map(x => '<div class="stat"><b>' + esc(x.value) + "</b><span>" + esc(loc(x.label)) + "</span></div>").join("") + "</div>" : "") +
       (clients.length ? '<div class="clients"><span class="lbl">' + esc(t.clientsLabel) + "</span>" + clients.map(x => safeUrl(x.logo)
-        ? '<img loading="lazy" src="' + esc(safeUrl(x.logo)) + '" alt="' + esc(x.name) + '" title="' + esc(x.name) + '">'
+        ? '<img loading="lazy" src="' + esc(safeUrl(x.logo)) + '" alt="' + esc(x.name) + '" title="' + esc(x.name) + '" onerror="this.remove()">'
         : '<span class="name">' + esc(x.name) + "</span>").join("") + "</div>" : "") +
       "</div></section>";
   }
@@ -536,7 +545,7 @@ function render() {
   const pics = (c.gallery || []).map(safeUrl).filter(Boolean);
   if (pics.length) {
     h += '<section class="block"><div class="wrap"><div class="sec-head"><h2>' + esc(t.galleryTitle) + '</h2></div><div class="gallery">' +
-      pics.map(p => '<img loading="lazy" alt="" src="' + esc(p) + '">').join("") + "</div></div></section>";
+      pics.map(p => '<img loading="lazy" alt="" src="' + esc(p) + '" onerror="this.remove()">').join("") + "</div></div></section>";
   }
 
   // ---- FAQ
@@ -548,7 +557,7 @@ function render() {
   // ---- Contact
   const links = [];
   if (safeUrl(b.website)) links.push([safeUrl(b.website), t.website]);
-  if (digits(b.whatsapp)) links.push(['https://wa.me/' + digits(b.whatsapp), t.whatsapp]);
+  if (waNumber(b.whatsapp)) links.push([waLink(b.whatsapp), t.whatsapp]);
   if (b.phone) links.push(["tel:" + String(b.phone).replace(/[^\d+]/g, ""), t.call + " " + b.phone]);
   if (b.email) links.push(["mailto:" + b.email, b.email]);
   if (safeUrl(b.mapUrl)) links.push([safeUrl(b.mapUrl), t.map]);
@@ -564,8 +573,17 @@ function render() {
   document.getElementById("app").innerHTML = h;
   restoreTyped(typed);
 
-  document.getElementById("waSlot").innerHTML = digits(b.whatsapp)
-    ? '<a class="wa" href="https://wa.me/' + digits(b.whatsapp) + '" target="_blank" rel="noopener">' + esc(t.whatsapp) + "</a>" : "";
+  document.getElementById("waSlot").innerHTML = waNumber(b.whatsapp)
+    ? '<a class="wa" href="' + esc(waLink(b.whatsapp)) + '" target="_blank" rel="noopener">' + esc(t.whatsapp) + "</a>" : "";
+}
+
+// A photo that can't load is removed, and the photo grid adjusts (or disappears)
+function fixMosaic(img) {
+  const m = img.parentNode;
+  img.remove();
+  if (!m) return;
+  const n = m.querySelectorAll("img").length;
+  if (!n) m.remove(); else m.className = "mosaic n" + n;
 }
 
 function setEvTab(k) {
