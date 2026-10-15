@@ -220,6 +220,7 @@ const SECTIONS = {
       field("Email", ["brand", "email"], { type: "email" }),
       bi("Address", ["brand", "address"]),
       field("Google Maps link", ["brand", "mapUrl"], { wide: true }),
+      field("Main website", ["brand", "website"]),
       field("Instagram link", ["brand", "instagram"]),
       field("Facebook link", ["brand", "facebook"])
     )
@@ -227,8 +228,15 @@ const SECTIONS = {
   hero: ["Top of the page", () => [
     hint("The first thing visitors see. Keep the title short."),
     rows(bi("Small line above the title", ["hero", "tagline"]), bi("Title", ["hero", "title"]),
-         bi("Sentence under the title", ["hero", "subtitle"], { type: "textarea", rows: 2 }),
-         imageField("Background photo (optional)", ["hero", "image"], "leave empty to use the pitch design"))
+         bi("Sentence under the title", ["hero", "subtitle"], { type: "textarea", rows: 2 })),
+    el("h3", { class: "sub-title" }, "Photos next to the title (up to 4)"),
+    hint("Use photos that show different programs: a company day, a school event, a family camp, the academy. The first photo is the biggest."),
+    list(["hero", "images"], {
+      title: (x, i) => "Photo " + (i + 1),
+      make: () => "",
+      addLabel: "Add a photo",
+      body: p => rows(imageField("Photo URL", p))
+    })
   ]],
   proof: ["Numbers & clients", () => [
     hint("Shown right under the top of the page. Real numbers and client names make visitors trust you for events. Leave both empty to hide this part."),
@@ -247,12 +255,12 @@ const SECTIONS = {
       body: p => rows(field("Name", p.concat("name"), { wide: true }), imageField("Logo URL (optional)", p.concat("logo"), "without a logo, the name is shown"))
     })
   ]],
-  features: ["Why us", () => [
-    hint("Short reasons to choose the academy. Four works best."),
+  features: ["Values", () => [
+    hint("The values shown on the page. Six fit best."),
     list(["features"], {
-      title: (x, i) => "Reason " + (i + 1),
+      title: (x, i) => (x.title && x.title.en) || "Value " + (i + 1),
       make: () => ({ id: newId("f"), title: empty(), text: empty() }),
-      addLabel: "Add a reason",
+      addLabel: "Add a value",
       body: p => rows(bi("Title", p.concat("title")), bi("Text", p.concat("text"), { type: "textarea", rows: 2 }))
     })
   ]],
@@ -292,8 +300,8 @@ const SECTIONS = {
       body: p => rows(bi("Name", p.concat("name")), bi("Description", p.concat("desc"), { type: "textarea", rows: 2 }))
     })
   ]],
-  summer: ["Summer events", () => [
-    hint("Untick \"Registration is open\" when an event is full. It stays on the page but people can't sign up."),
+  summer: ["Camps & family events", () => [
+    hint("Camps, family days, father & child and so on. Untick \"Registration is open\" when one is full: it stays on the page but people can't register. Leave price or ages empty to hide them."),
     rows(bi("Introduction", ["summer", "intro"], { type: "textarea", rows: 2 })),
     el("h3", { class: "sub-title" }, "Events"),
     list(["summer", "events"], {
@@ -327,7 +335,7 @@ const SECTIONS = {
 };
 function hint(t) { return el("p", { class: "hint" }, t); }
 
-const ORDER = ["brand", "hero", "proof", "schools", "companies", "academy", "summer", "features", "faq", "gallery"];
+const ORDER = ["brand", "hero", "proof", "companies", "schools", "summer", "academy", "features", "faq", "gallery"];
 function renderSide() {
   const side = document.getElementById("side");
   side.innerHTML = "";
