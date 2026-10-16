@@ -289,6 +289,7 @@ function list(path, opt) {
   return box;
 }
 const empty = () => ({ en: "", ar: "" });
+const vis = arr => (arr || []).filter(x => !(x && typeof x === "object" && x.hidden));
 // a photo is either a link, or { url, hidden } once it has been hidden
 function urlPath(p) { return typeof get(p) === "string" ? p : p.concat("url"); }
 
@@ -351,20 +352,36 @@ const SECTIONS = {
       body: p => rows(bi("Title", p.concat("title")), bi("Text", p.concat("text"), { type: "textarea", rows: 2 }))
     })
   ]],
-  academy: ["Academy", () => [
-    hint("Groups, times and prices for the weekly academy."),
-    rows(field("Registration is open", ["academy", "open"], { type: "checkbox", wide: true }),
-         bi("Introduction", ["academy", "intro"], { type: "textarea", rows: 2 })),
-    el("h3", { class: "sub-title" }, "Groups"),
-    list(["academy", "groups"], {
-      title: x => "Ages " + (x.ages || "?"),
-      make: () => ({ id: newId("g"), ages: "", days: empty(), time: "", location: empty(), price: "", period: { en: "per month", ar: "شهريًا" } }),
-      addLabel: "Add a group",
-      body: p => rows(field("Ages", p.concat("ages"), { help: "e.g. 5–7" }), field("Time", p.concat("time"), { help: "e.g. 5:00 PM" }),
-                      bi("Days", p.concat("days")), bi("Place", p.concat("location")),
-                      field("Price", p.concat("price"), { type: "number" }), el("div"), bi("Price is", p.concat("period")))
-    })
-  ]],
+  academy: ["Academy & branches", () => {
+    if (!Array.isArray(C.academy.branches)) {   // content saved before branches existed
+      C.academy.branches = [{ id: "b1", name: { en: "Main branch", ar: "الفرع الرئيسي" }, address: empty(), mapUrl: "", groups: C.academy.groups || [] }];
+      delete C.academy.groups;
+    }
+    return [
+      hint("Each branch has its own address and its own groups (ages, days, time, price). Parents choose the branch first, then a group from that branch. Hide a branch to take it off the page without deleting it."),
+      rows(field("Registration is open", ["academy", "open"], { type: "checkbox", wide: true }),
+           bi("Introduction", ["academy", "intro"], { type: "textarea", rows: 2 })),
+      el("h3", { class: "sub-title" }, "Branches"),
+      list(["academy", "branches"], {
+        title: (x, i) => ((x.name && (x.name.en || x.name.ar)) || "Branch " + (i + 1)) + " · " + vis(x.groups).length + " group(s)",
+        make: () => ({ id: newId("b"), name: empty(), address: empty(), mapUrl: "", groups: [] }),
+        addLabel: "Add a branch",
+        body: bp => [
+          rows(bi("Branch name", bp.concat("name")), bi("Address", bp.concat("address")),
+               field("Google Maps link (optional)", bp.concat("mapUrl"), { wide: true })),
+          el("h4", { class: "sub-title", style: "font-size:.9rem;margin-top:14px" }, "Groups in this branch"),
+          el("div", { class: "nested" }, list(bp.concat("groups"), {
+            title: x => "Ages " + (x.ages || "?") + (x.days && x.days.en ? ", " + x.days.en : "") + (x.time ? " " + x.time : ""),
+            make: () => ({ id: newId("g"), ages: "", days: empty(), time: "", location: empty(), price: "", period: { en: "per month", ar: "شهريًا" } }),
+            addLabel: "Add a group to this branch",
+            body: p => rows(field("Ages", p.concat("ages"), { help: "e.g. 5–7" }), field("Time", p.concat("time"), { help: "e.g. 5:00 PM" }),
+                            bi("Days", p.concat("days")), bi("Pitch / place in the branch (optional)", p.concat("location")),
+                            field("Price", p.concat("price"), { type: "number" }), el("div"), bi("Price is", p.concat("period")))
+          }))
+        ]
+      })
+    ];
+  }],
   schools: ["School events", () => [
     hint("The kinds of events schools can request. They also appear in the school form."),
     rows(bi("Introduction", ["schools", "intro"], { type: "textarea", rows: 2 })),
