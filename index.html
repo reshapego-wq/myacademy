@@ -131,6 +131,12 @@
 
   /* School event types */
   .types { list-style: none; display: grid; gap: 14px; }
+  .seg { flex-wrap: wrap; }
+  .acpanel[hidden] { display: none; }
+  .branch-info { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; margin-bottom: 12px; font-size: .94rem; }
+  .branch-info b { font-size: 1.05rem; }
+  .branch-info span { color: var(--muted); }
+  .branch-info a { color: var(--primary); font-weight: 700; }
   .types li { padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-inline-start: 4px solid var(--primary); border-radius: 10px; }
   .types b { display: block; }
   .types span { color: var(--muted); font-size: .92rem; }
@@ -267,6 +273,7 @@ const T = {
     netErr: "We couldn't send your request. Check your internet connection and try again.",
     serverErr: "We couldn't send your request: ",
     academyClosed: "Registration is closed right now. Message us on WhatsApp to join the waiting list.",
+    branchFirst: "Choose a branch first", directions: "Directions", ourBranches: "Our branches",
     noSummer: "No camps or family events are open for registration right now. Check back soon.",
     registerFor: "Register for this", full: "Registration closed",
     website: "reshapego.com", whatsapp: "WhatsApp", call: "Call us", email: "Email", map: "Open in Maps", instagram: "Instagram", facebook: "Facebook",
@@ -278,7 +285,7 @@ const T = {
       health: "Anything we should know about your child's health?", schoolName: "School name", contactName: "Your name",
       role: "Your job title", eventType: "Type of event", preferredDate: "Preferred date",
       students: "Number of students (approx.)", ages: "Students' ages", notes: "Anything else?",
-      age: "Child's age", event: "Camp or event", children: "Number of children",
+      age: "Child's age", event: "Camp or event", children: "Number of children", branch: "Branch",
       companyName: "Company name", people: "Number of people (approx.)", venue: "Where will the event be?"
     }
   },
@@ -313,6 +320,7 @@ const T = {
     netErr: "لم نتمكن من إرسال طلبك. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.",
     serverErr: "لم نتمكن من إرسال طلبك: ",
     academyClosed: "التسجيل مغلق حاليًا. راسلنا على واتساب لتنضم إلى قائمة الانتظار.",
+    branchFirst: "اختر الفرع أولًا", directions: "الاتجاهات", ourBranches: "فروعنا",
     noSummer: "لا توجد معسكرات أو فعاليات عائلية متاحة للتسجيل الآن. تابعنا قريبًا.",
     registerFor: "سجّل في هذه الفعالية", full: "التسجيل مغلق",
     website: "reshapego.com", whatsapp: "واتساب", call: "اتصل بنا", email: "البريد", map: "افتح الخريطة", instagram: "إنستجرام", facebook: "فيسبوك",
@@ -324,7 +332,7 @@ const T = {
       health: "هل هناك شيء نعرفه عن صحة طفلك؟", schoolName: "اسم المدرسة", contactName: "اسمك",
       role: "وظيفتك", eventType: "نوع الفعالية", preferredDate: "التاريخ المقترح",
       students: "عدد الطلاب تقريبًا", ages: "أعمار الطلاب", notes: "ملاحظات أخرى",
-      age: "سن الطفل", event: "المعسكر أو الفعالية", children: "عدد الأطفال",
+      age: "سن الطفل", event: "المعسكر أو الفعالية", children: "عدد الأطفال", branch: "الفرع",
       companyName: "اسم الشركة", people: "عدد المشاركين تقريبًا", venue: "مكان الفعالية"
     }
   }
@@ -396,11 +404,11 @@ function formFields(kind) {
     { k: "childName", req: 1 }, { k: "birthDate", type: "date", req: 1 },
     { k: "parentName", req: 1 }, { k: "phone", type: "tel", req: 1 },
     { k: "email", type: "email" }, { k: "school" },
-    { k: "group", type: "select", wide: 1, options: vis(c.academy.groups).map(g => ({
-        v: g.id, l: t.ages + " " + g.ages + ", " + loc(g.days) + " " + (g.time || "") })).concat([{ v: "", l: t.notSure }]) },
+  ].concat(branches().length > 1 ? [{ k: "branch", type: "select", req: 1, options: branches().map(b => ({ v: b.id, l: loc(b.name) })) }] : []).concat([
+    { k: "group", type: "select", wide: branches().length < 2 ? 1 : 0, options: groupOptions(), placeholder: acBranch ? "" : t.branchFirst },
     { k: "playedBefore", type: "select", options: [{ v: "Yes", l: t.yes }, { v: "No", l: t.no }] },
     { k: "health", type: "textarea", wide: 1 }
-  ];
+  ]);
   if (kind === "schools") return [
     { k: "schoolName", req: 1 }, { k: "contactName", req: 1 },
     { k: "role" }, { k: "phone", type: "tel", req: 1 },
@@ -425,6 +433,36 @@ function formFields(kind) {
     { k: "notes", type: "textarea", wide: 1 }
   ];
 }
+// Academy branches (older saved content had one list of groups: treat it as one branch)
+let acBranch = "";
+function branches() {
+  const a = content.academy || {};
+  if (Array.isArray(a.branches)) return vis(a.branches);
+  return [{ id: "b1", name: { en: "", ar: "" }, address: { en: "", ar: "" }, groups: a.groups || [] }];
+}
+function groupOptions() {
+  const t = T[lang], br = branches().find(b => b.id === acBranch);
+  if (!br) return [];
+  return vis(br.groups).map(g => ({ v: g.id, l: t.ages + " " + g.ages + ", " + loc(g.days) + " " + (g.time || "") })).concat([{ v: "", l: t.notSure }]);
+}
+function refreshGroupSelect() {
+  const sel = document.getElementById("academy-group");
+  if (!sel) return;
+  const t = T[lang];
+  sel.innerHTML = '<option value="">' + esc(acBranch ? t.choose : t.branchFirst) + "</option>" +
+    groupOptions().map(o => '<option value="' + esc(o.v) + '">' + esc(o.l) + "</option>").join("");
+}
+function setAcTab(id, alsoForm) {
+  document.querySelectorAll("[data-actab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.actab === id)));
+  document.querySelectorAll(".acpanel").forEach(p => p.hidden = p.id !== "acp-" + id);
+  if (alsoForm) {
+    acBranch = id;
+    const bs = document.getElementById("academy-branch");
+    if (bs) bs.value = id;
+    refreshGroupSelect();
+  }
+}
+
 function openEvents() { return vis(content.summer.events).filter(e => e.open !== false); }
 
 function fieldHtml(kind, f) {
@@ -432,7 +470,7 @@ function fieldHtml(kind, f) {
   const label = '<label for="' + id + '">' + esc(t.f[f.k]) + (f.req ? ' <span class="req">*</span>' : "") + "</label>";
   let ctl;
   if (f.type === "select") {
-    ctl = '<select id="' + id + '" name="' + f.k + '"' + (f.req ? " required" : "") + '><option value="">' + esc(t.choose) + "</option>" +
+    ctl = '<select id="' + id + '" name="' + f.k + '"' + (f.req ? " required" : "") + '><option value="">' + esc(f.placeholder || t.choose) + "</option>" +
       f.options.map(o => '<option value="' + esc(o.v) + '">' + esc(o.l) + "</option>").join("") + "</select>";
   } else if (f.type === "textarea") {
     ctl = '<textarea id="' + id + '" name="' + f.k + '" rows="3"></textarea>';
@@ -537,11 +575,19 @@ function render() {
   h += '<div style="max-width:640px">' + (openEvents().length ? formHtml("summer") : '<div class="closed-box">' + esc(t.noSummer) + "</div>") + "</div></div></section>";
 
   // ---- Academy
-  const groups = vis(c.academy.groups);
-  h += '<section class="block" id="academy"><div class="wrap split"><div><div class="sec-head"><h2>' + esc(t.academyTitle) + "</h2><p>" + esc(loc(c.academy.intro)) + "</p></div>" +
-    (groups.length ? '<ul class="groups">' + groups.map(g =>
+  const brs = branches();
+  if (!brs.find(x => x.id === acBranch)) acBranch = brs.length === 1 ? brs[0].id : "";
+  const showTab = acBranch || (brs[0] && brs[0].id);
+  const groupList = list => list.length ? '<ul class="groups">' + list.map(g =>
       '<li><div class="age">' + esc(g.ages) + "<small>" + esc(t.agesShort) + '</small></div><div class="g-info"><b>' + esc(loc(g.days)) + (g.time ? ", " + esc(g.time) : "") +
-      "</b><span>" + esc(loc(g.location)) + '</span></div><div class="price">' + esc(money(g.price)) + "<small>" + esc(loc(g.period)) + "</small></div></li>").join("") + "</ul>" : "") +
+      "</b>" + (loc(g.location) ? "<span>" + esc(loc(g.location)) + "</span>" : "") + '</div><div class="price">' + esc(money(g.price)) + "<small>" + esc(loc(g.period)) + "</small></div></li>").join("") + "</ul>" : "";
+  const branchInfo = br => (loc(br.name) || loc(br.address) || safeUrl(br.mapUrl))
+    ? '<div class="branch-info">' + (loc(br.name) ? "<b>" + esc(loc(br.name)) + "</b>" : "") + (loc(br.address) ? "<span>" + esc(loc(br.address)) + "</span>" : "") +
+      (safeUrl(br.mapUrl) ? '<a href="' + esc(safeUrl(br.mapUrl)) + '" target="_blank" rel="noopener">' + esc(t.directions) + "</a>" : "") + "</div>" : "";
+  h += '<section class="block" id="academy"><div class="wrap split"><div><div class="sec-head"><h2>' + esc(t.academyTitle) + "</h2><p>" + esc(loc(c.academy.intro)) + "</p></div>" +
+    (brs.length > 1 ? '<div class="seg" role="tablist" aria-label="' + esc(t.ourBranches) + '">' + brs.map(br =>
+      '<button type="button" role="tab" data-actab="' + esc(br.id) + '" aria-selected="' + (br.id === showTab) + '">' + esc(loc(br.name)) + "</button>").join("") + "</div>" : "") +
+    brs.map(br => '<div class="acpanel" id="acp-' + esc(br.id) + '"' + (br.id === showTab ? "" : " hidden") + ">" + branchInfo(br) + groupList(vis(br.groups)) + "</div>").join("") +
     "</div><div>" + (c.academy.open === false ? '<div class="closed-box">' + esc(t.academyClosed) + "</div>" : formHtml("academy")) + "</div></div></section>";
 
   // ---- Why us
@@ -627,6 +673,8 @@ document.getElementById("langBtn").addEventListener("click", () => {
 });
 
 document.addEventListener("click", e => {
+  const at = e.target.closest("[data-actab]");
+  if (at) setAcTab(at.dataset.actab, true);
   const tab = e.target.closest("[data-evtab]");
   if (tab) setEvTab(tab.dataset.evtab);
   const pick = e.target.closest("[data-pick]");
@@ -641,6 +689,10 @@ document.addEventListener("click", e => {
   if (a && EMBED) { e.preventDefault(); goTo(document.querySelector(a.getAttribute("href"))); }
 });
 
+document.addEventListener("change", e => {
+  if (e.target.id === "academy-branch") { acBranch = e.target.value; refreshGroupSelect(); if (acBranch) setAcTab(acBranch, false); }
+});
+
 document.addEventListener("submit", async e => {
   const form = e.target.closest("form[data-kind]");
   if (!form) return;
@@ -651,6 +703,7 @@ document.addEventListener("submit", async e => {
 
   const data = {};
   formFields(kind).forEach(f => { data[f.k] = (form.elements[f.k].value || "").trim(); });
+  if (kind === "academy" && !data.branch) data.branch = acBranch;
 
   const missing = formFields(kind).filter(f => f.req && !data[f.k]);
   if (missing.length) {
