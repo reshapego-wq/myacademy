@@ -77,7 +77,16 @@
   .agree { display: flex; gap: 12px; align-items: flex-start; margin-top: 18px; padding: 14px 16px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; font-weight: 700; }
   .agree input { width: 22px; height: 22px; flex: none; margin-top: 2px; accent-color: var(--primary); cursor: pointer; }
   .agree:has(input:checked) { border-color: var(--primary); background: #e9f0f6; }
-  details.again { margin-bottom: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; background: var(--chalk); }
+  .policy { margin-top: 26px; border: 1.5px solid #f0d089; border-radius: 12px; background: #fdf6e6; padding: 18px 20px; }
+  .policy.bad { border-color: var(--danger); background: #fdeceb; }
+  .policy.bad .err { display: block; }
+  .policy-title { display: block; font-size: 1.05rem; font-weight: 800; color: var(--primary); margin-bottom: 6px; }
+  .policy-warn { font-size: .92rem; margin-bottom: 14px; }
+  .policy-link { display: inline-block; font-weight: 800; color: var(--primary); padding: 10px 18px; border: 1.5px solid var(--primary);
+                 border-radius: 999px; text-decoration: none; margin-bottom: 14px; }
+  .policy-link:hover { background: var(--primary); color: #fff; }
+  .policy .agree { background: #fff; margin-top: 0; }
+  details.again { margin-bottom: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; background: #fff; }
   details.again summary { cursor: pointer; font-weight: 700; color: var(--primary); font-size: .9rem; }
   details.again .terms-text { margin-top: 10px; font-size: .92rem; }
 </style>
@@ -95,8 +104,10 @@
 <script>
 const T = {
   en: {
-    langBtn: "العربية", start: "Start filling the form", readAgain: "Read the terms again", termsTitle: "Before you start",
-    agree: "I have read and agree to the terms above", reqNote: "Questions marked * are required.", send: "Send", sending: "Sending…", choose: "Choose…",
+    langBtn: "العربية", readPolicy: "Read the policy", readHere: "Or read it here", policyTitle: "Before you send",
+    policyWarn: "Please read the policy carefully before you send this form.",
+    mustAgree: "Please read the policy and tick the box.",
+    agree: "I have read the policy and I agree to it", reqNote: "Questions marked * are required.", send: "Send", sending: "Sending…", choose: "Choose…",
     yes: "Yes", no: "No", required: "Please answer this question.", badPhone: "Please check this phone number.",
     badEmail: "Please check this email.", fix: "Please check the questions marked in red.",
     doneTitle: "Thank you, your registration is complete", doneText: "We received your answers. We'll contact you if we need anything else.",
@@ -107,8 +118,10 @@ const T = {
     notConfigured: "Almost ready: paste your Apps Script web app URL in config.js."
   },
   ar: {
-    langBtn: "English", start: "ابدأ ملء الاستمارة", readAgain: "اقرأ الشروط مرة أخرى", termsTitle: "قبل أن تبدأ",
-    agree: "قرأت الشروط أعلاه وأوافق عليها", reqNote: "الأسئلة التي عليها * مطلوبة.", send: "إرسال", sending: "جارٍ الإرسال…", choose: "اختر…",
+    langBtn: "English", readPolicy: "اقرأ السياسة", readHere: "أو اقرأها هنا", policyTitle: "قبل أن ترسل",
+    policyWarn: "من فضلك اقرأ السياسة جيدًا قبل إرسال هذه الاستمارة.",
+    mustAgree: "من فضلك اقرأ السياسة وعلّم على الموافقة.",
+    agree: "قرأت السياسة وأوافق عليها", reqNote: "الأسئلة التي عليها * مطلوبة.", send: "إرسال", sending: "جارٍ الإرسال…", choose: "اختر…",
     yes: "نعم", no: "لا", required: "من فضلك أجب عن هذا السؤال.", badPhone: "من فضلك راجع رقم الهاتف.",
     badEmail: "من فضلك راجع البريد الإلكتروني.", fix: "من فضلك راجع الأسئلة المحددة باللون الأحمر.",
     doneTitle: "شكرًا لك، تم التسجيل بنجاح", doneText: "استلمنا إجاباتك، وسنتواصل معك إذا احتجنا أي شيء آخر.",
@@ -200,6 +213,20 @@ function questionHtml(f) {
     help + pic + ctl + '<span class="err"></span></div>';
 }
 
+// The policy box: a warning, a link (and the text itself if there is one), then the tick box.
+function policyHtml(f) {
+  const t = T[lang], tr = f.terms;
+  if (!tr) return "";
+  const url = safeUrl(loc(tr.url)), text = loc(tr.text);
+  return '<div class="policy" id="policyBox">' +
+    '<b class="policy-title">' + esc(loc(tr.title) || t.policyTitle) + "</b>" +
+    '<p class="policy-warn">' + esc(loc(tr.warning) || t.policyWarn) + "</p>" +
+    (url ? '<a class="policy-link" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(t.readPolicy) + " \u2197</a>" : "") +
+    (text ? '<details class="again"><summary>' + esc(url ? t.readHere : t.readPolicy) + '</summary><div class="terms-text">' + termsHtml(text) + "</div></details>" : "") +
+    '<label class="agree"><input type="checkbox" id="agree"' + (accepted ? " checked" : "") + "><span>" + esc(loc(tr.confirm) || t.agree) + "</span></label>" +
+    '<span class="err" id="policyErr"></span></div>';
+}
+
 function render() {
   const t = T[lang];
   document.documentElement.lang = lang;
@@ -233,24 +260,14 @@ function render() {
   if (sent) {
     card.innerHTML = '<div class="done"><b>' + esc(t.doneTitle) + "</b><p>" + esc(t.doneText) + "</p>" +
       '<button class="btn line" type="button" id="again">' + esc(t.another) + '</button><p class="help" style="margin-top:8px">' + esc(t.anotherHint) + "</p></div>";
-    document.getElementById("again").onclick = () => { sent = false; render(); window.scrollTo(0, 0); };
-    return;
-  }
-
-  if (f.terms && !accepted) {
-    card.innerHTML = '<div class="terms"><h2>' + esc(loc(f.terms.title) || t.termsTitle) + '</h2><div class="terms-box terms-text">' + termsHtml(loc(f.terms.text)) + "</div>" +
-      '<label class="agree"><input type="checkbox" id="agree"><span>' + esc(loc(f.terms.confirm) || t.agree) + "</span></label>" +
-      '<button class="btn" type="button" id="startBtn" disabled>' + esc(t.start) + "</button></div>";
-    const agree = document.getElementById("agree"), start = document.getElementById("startBtn");
-    agree.addEventListener("change", () => { start.disabled = !agree.checked; });
-    start.addEventListener("click", () => { accepted = true; render(); window.scrollTo(0, 0); });
+    document.getElementById("again").onclick = () => { sent = false; accepted = false; render(); window.scrollTo(0, 0); };
     return;
   }
 
   card.innerHTML = '<form id="theForm" novalidate>' +
-    (f.terms ? '<details class="again"><summary>' + esc(t.readAgain) + '</summary><div class="terms-text">' + termsHtml(loc(f.terms.text)) + "</div></details>" : "") +
     '<p class="note">' + esc(t.reqNote) + "</p>" +
     f.fields.map(questionHtml).join("") +
+    policyHtml(f) +
     '<input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">' +
     '<button class="btn" type="submit">' + esc(t.send) + '</button><p class="msg" role="status" aria-live="polite"></p></form>';
   applyVisibility();
@@ -259,6 +276,12 @@ function render() {
 // ---------- answers ----------
 function readAnswer(e) {
   const el = e.target, qid = el.dataset && el.dataset.q;
+  if (el.id === "agree") {
+    accepted = !!el.checked;
+    const box = document.getElementById("policyBox");
+    if (box && accepted) box.classList.remove("bad");
+    return;
+  }
   if (!qid) return;
   const f = fieldsById()[qid];
   if (f.type === "checkbox") {
@@ -293,6 +316,14 @@ document.addEventListener("submit", async e => {
     if (problem && !firstBad) firstBad = box;
     if (!empty) out[f.id] = Array.isArray(v) ? v : String(v).trim();
   });
+  if (data.form.terms && !accepted) {
+    const box = document.getElementById("policyBox");
+    if (box) {
+      box.classList.add("bad");
+      document.getElementById("policyErr").textContent = t.mustAgree;
+      if (!firstBad) firstBad = box;
+    }
+  }
   if (firstBad) {
     msg.textContent = t.fix;
     firstBad.scrollIntoView({ block: "center" });
