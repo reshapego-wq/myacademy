@@ -162,7 +162,7 @@
 <script>
 const API = window.RESHAPE_API || "";
 let PW = "", NAME = "", USER = "", FORMS = [], BRAND = {}, CUR = "EGP", R = null;   // R = { form, rows }
-let ADMIN = false;   // the admin sees every registration; a team member sees only the ones they follow up
+let ADMIN = false;   // everyone sees every registration; only the admin can delete one
 let filter = "all", search = "", who = "";   // who = responsible filter
 
 function esc(v) { return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
@@ -210,15 +210,13 @@ function render() {
   if (!R) { main.innerHTML = '<p class="empty">Choose a camp or event.</p>'; return; }
   const k = keyFields();
   main.innerHTML = '<div id="summary"></div>' +
-    '<section class="regs"><h3>' + (ADMIN ? "All registrations" : "Your registrations") + '</h3><p class="hint no-print">' +
-    (ADMIN ? "Choose the offer, type what was paid, the next due date and the method. Each change is saved to the sheet straight away. Status is worked out by itself."
-           : "You see the children you follow up, plus the ones nobody has taken yet. Record a payment and the child becomes yours. Once a child has paid in full they move off your list. Ask the admin for the full report.") + "</p>" +
+    '<section class="regs"><h3>All registrations</h3><p class="hint no-print">Choose the offer, type what was paid, the next due date and the method. Each change is saved to the sheet straight away. Status is worked out by itself. Use "Only mine" to see just the children you follow up.</p>' +
     '<div class="toolbar"><input type="search" id="search" placeholder="Search name or phone" value="' + esc(search) + '">' +
     [["all", "All"], ["owing", "Still owe"], ["paid", "Paid"], ["nooffer", "No offer"], ["cancelled", "Cancelled"]]
       .map(([v, l]) => '<button class="chip" type="button" data-filter="' + v + '" aria-pressed="' + (filter === v) + '">' + l + "</button>").join("") +
-    (ADMIN ? '<select id="whoSel" aria-label="Responsible"><option value="">Everyone</option>' +
+    '<select id="whoSel" aria-label="Responsible"><option value="">Everyone</option>' + (ADMIN ? "" : '<option value="@me"' + (who === "@me" ? " selected" : "") + ">Only mine</option>") +
       (R.form.team || []).map(n => '<option' + (who === n ? " selected" : "") + ">" + esc(n) + "</option>").join("") +
-      '<option value="@none"' + (who === "@none" ? " selected" : "") + ">Nobody responsible</option></select>" : "") + "</div>" +
+      '<option value="@none"' + (who === "@none" ? " selected" : "") + ">Nobody responsible</option></select>" + "</div>" +
     '<div class="tbl-wrap"><table class="reg"><thead><tr><th>#</th><th>Received</th><th>Child</th>' + (k.parent ? "<th>Parent</th>" : "") +
     '<th>Phone</th><th>Offer</th><th class="num">Price</th><th class="num">Paid</th><th class="num">Remaining</th><th>Due date</th><th>Method</th><th>Responsible</th><th>Status</th><th>Notes</th><th class="no-print"></th></tr></thead><tbody id="regBody"></tbody></table></div></section>';
   renderSummary();
@@ -242,13 +240,10 @@ function renderSummary() {
 
   // Cards
   h += '<div class="cards">' +
-    (ADMIN
-      ? card("", "Children registered", act.length, rows.length - act.length ? (rows.length - act.length) + " cancelled" : "") +
-        card("good", "Paid in full", paidFull.length, "of " + act.length) +
-        card("good", "Collected", money(sum(act, r => r.paid)), "") +
-        card("", "Expected total", money(sum(act, r => r.price)), noOffer.length ? "without " + noOffer.length + " with no offer yet" : "")
-      : card("", "On your list", act.length, "still to collect") +
-        card("good", "You collected", money(sum(act, r => (r.collectedBy || {})[USER] || 0)), "from these children")) +
+    card("", "Children registered", act.length, rows.length - act.length ? (rows.length - act.length) + " cancelled" : "") +
+    card("good", "Paid in full", paidFull.length, "of " + act.length) +
+    card("good", "Collected", money(sum(act, r => r.paid)), "") +
+    card("", "Expected total", money(sum(act, r => r.price)), noOffer.length ? "without " + noOffer.length + " with no offer yet" : "") +
     card(owing.length ? "warn" : "", "Still owed", money(sum(owing, r => r.remaining)), owing.length + (owing.length === 1 ? " person" : " people")) +
     card(overdue.length ? "bad" : "", "Overdue", overdue.length, overdue.length ? money(sum(overdue, r => r.remaining)) : "none") +
     card(noOffer.length ? "warn" : "", "No offer chosen", noOffer.length, noOffer.length ? "choose it in the table" : "all set") +
@@ -259,16 +254,14 @@ function renderSummary() {
   const byOffer = f.offers.map(o => ({ name: o.name, price: o.price, list: act.filter(r => r.offer === o.name) }))
     .filter(o => o.list.length || !f.offers.find(x => x.name === o.name).hidden);
   const other = act.filter(r => r.offer && offerNames.indexOf(r.offer) < 0);
-  h += '<div class="' + (ADMIN ? "two" : "") + '">' + (ADMIN
-    ? '<section><h3>By offer</h3><p class="hint">Only children who are not cancelled.</p><div class="tbl-wrap"><table><thead><tr><th>Offer</th><th class="num">Price</th><th class="num">Children</th><th class="num">Expected</th><th class="num">Collected</th><th class="num">Owed</th></tr></thead><tbody>' +
-      byOffer.map(o => offerRow(o.name, money(o.price), o.list)).join("") +
-      (other.length ? offerRow("Other", "", other) : "") +
-      (noOffer.length ? offerRow("No offer yet", "", noOffer) : "") +
-      "</tbody><tfoot>" + offerRow("Total", "", act) + "</tfoot></table></div></section>"
-    : "");
+  h += '<div class="two"><section><h3>By offer</h3><p class="hint">Only children who are not cancelled.</p><div class="tbl-wrap"><table><thead><tr><th>Offer</th><th class="num">Price</th><th class="num">Children</th><th class="num">Expected</th><th class="num">Collected</th><th class="num">Owed</th></tr></thead><tbody>' +
+    byOffer.map(o => offerRow(o.name, money(o.price), o.list)).join("") +
+    (other.length ? offerRow("Other", "", other) : "") +
+    (noOffer.length ? offerRow("No offer yet", "", noOffer) : "") +
+    "</tbody><tfoot>" + offerRow("Total", "", act) + "</tfoot></table></div></section>";
 
   const due = owing.slice().sort((a, b) => (a.due || "9999") < (b.due || "9999") ? -1 : 1);
-  h += '<section><h3>' + (ADMIN ? "Payments still due" : "Who to call next") + '</h3><p class="hint">Sorted by due date. Red means the date has passed.</p><div class="tbl-wrap">' +
+  h += '<section><h3>Payments still due</h3><p class="hint">Sorted by due date. Red means the date has passed.</p><div class="tbl-wrap">' +
     (due.length ? "<table><thead><tr><th>Child</th><th>Phone</th><th>Responsible</th><th class=\"num\">Remaining</th><th>Due date</th></tr></thead><tbody>" +
       due.map(r => "<tr><td>" + esc(ans(r, k.child)) + '</td><td dir="ltr">' + esc(ans(r, k.phone)) + "</td><td>" + (r.responsible ? esc(r.responsible) : '<span class="muted">nobody</span>') +
         '</td><td class="num">' + money(r.remaining) + '</td><td class="' + (isOverdue(r) ? "over" : r.due ? "" : "muted") + '">' + esc(r.due || "no date yet") + (isOverdue(r) ? " (overdue)" : "") + "</td></tr>").join("") +
@@ -279,7 +272,7 @@ function renderSummary() {
   const addName = n => { if (n && names.indexOf(n) < 0) names.push(n); };
   (f.team || []).forEach(addName);
   rows.forEach(r => { addName(r.responsible); Object.keys(r.collectedBy || {}).forEach(addName); });
-  if (ADMIN && names.length) {
+  if (names.length) {
     const line = (label, mine, collected) => {
       const owe = mine.filter(r => r.remaining > 0), od = mine.filter(isOverdue);
       return "<tr><td><b>" + esc(label) + '</b></td><td class="num">' + mine.length + '</td><td class="num">' + money(collected) +
@@ -296,7 +289,7 @@ function renderSummary() {
 
   // Camp details from the answers
   const choiceFields = f.fields.filter(x => !x.hidden && ["select", "radio", "checkbox", "yesno"].indexOf(x.type) >= 0);
-  if (ADMIN && choiceFields.length && act.length) {
+  if (choiceFields.length && act.length) {
     h += '<section><h3>Camp details</h3><p class="hint">Counted from the answers of children who are not cancelled. Useful for T-shirts, meals and planning.</p><div class="counts">' +
       choiceFields.map(x => countBox(x, act)).join("") + "</div></section>";
   }
@@ -353,7 +346,7 @@ function drawRows() {
   const list = shownRows();
   if (!list.length) {
     body.innerHTML = '<tr><td colspan="15" class="empty">' +
-      (R.rows.length ? "Nothing matches." : ADMIN ? "No registrations yet." : "Nothing on your list right now.") + "</td></tr>";
+      (R.rows.length ? "Nothing matches." : "No registrations yet.") + "</td></tr>";
     return;
   }
   const dup = repeatedNames();
