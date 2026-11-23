@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Registrations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --primary: #123a5a; --accent: #f2b631; --ink: #15231c; --muted: #5b6b62; --line: #dde3da; --bg: #f4f6f2; --danger: #b3261e; --warn: #a86b12; --ok: #1e7a46; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Alexandria", "Segoe UI", Tahoma, Arial, sans-serif; background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.5; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button, select, input { font: inherit; }
+  .btn { background: var(--primary); color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+  .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); text-decoration: none; display: inline-block; }
+  .btn:disabled { opacity: .5; cursor: default; }
+
+  #login { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+  .login-box { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 28px; width: 100%; max-width: 360px; }
+  .login-box h1 { font-size: 1.2rem; margin-bottom: 16px; }
+  .login-box label { display: block; font-weight: 700; font-size: .85rem; margin-bottom: 4px; }
+  .login-box input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+  .login-box .btn { width: 100%; margin-top: 14px; padding: 11px; }
+  #loginErr { color: var(--danger); font-size: .85rem; margin-top: 10px; min-height: 1.2em; }
+
+  #app { display: none; }
+  .top { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid var(--line); }
+  .top-in { max-width: 1600px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .top img { height: 36px; width: auto; max-width: 140px; object-fit: contain; }
+  .top h1 { font-size: 1rem; margin-inline-end: 6px; }
+  .top select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; min-width: 230px; flex: 1; max-width: 420px; background: #fff; }
+  .top .right { margin-inline-start: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  main { max-width: 1600px; margin: 0 auto; padding: 20px 20px 70px; }
+
+  .print-head { display: none; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .print-head img { height: 46px; width: auto; max-width: 170px; object-fit: contain; }
+  .print-head h2 { font-size: 1.4rem; line-height: 1.2; }
+  .print-head p { color: var(--muted); font-size: .85rem; }
+
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .toolbar input[type=search] { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; min-width: 230px; }
+  .chip { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 13px; cursor: pointer; font-size: .82rem; font-weight: 600; color: var(--muted); }
+  .chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .count { color: var(--muted); font-size: .85rem; margin-inline-start: auto; }
+
+  /* which questions to show */
+  details.cols { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; }
+  details.cols > summary { cursor: pointer; padding: 12px 16px; font-weight: 700; font-size: .9rem; list-style: none; display: flex; align-items: center; gap: 8px; }
+  details.cols > summary::-webkit-details-marker { display: none; }
+  details.cols > summary::before { content: "\25B8"; color: var(--muted); }
+  details.cols[open] > summary::before { content: "\25BE"; }
+  .cols-body { padding: 0 16px 16px; }
+  .cols-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 18px; margin-top: 6px; }
+  .cols-grid label { display: flex; align-items: flex-start; gap: 7px; font-size: .86rem; cursor: pointer; padding: 3px 0; }
+  .cols-grid input { margin-top: 3px; flex: none; accent-color: var(--primary); }
+  .cols-grid .tagx { color: var(--muted); font-size: .76rem; }
+  .cols-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .cols-acts button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 5px 11px; font-size: .8rem; font-weight: 600; cursor: pointer; color: var(--ink); }
+  .cols-head { font-size: .78rem; font-weight: 700; color: var(--muted); margin-top: 14px; }
+
+  .tbl-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  th { text-align: start; font-size: .74rem; color: var(--muted); font-weight: 700; padding: 10px 11px; border-bottom: 2px solid var(--line); background: #fafbf8; vertical-align: bottom; }
+  th.q { min-width: 130px; max-width: 230px; white-space: normal; }
+  td { padding: 9px 11px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: .86rem; }
+  td.wrap { white-space: pre-line; min-width: 150px; max-width: 320px; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: #fcfdfa; }
+  .sticky { position: sticky; left: 0; z-index: 2; background: #fff; border-inline-end: 1px solid var(--line); }
+  th.sticky { background: #fafbf8; z-index: 3; }
+  tbody tr:hover td.sticky { background: #fcfdfa; }
+  td.rownum { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+  td.name { font-weight: 700; white-space: nowrap; }
+  .muted { color: var(--muted); }
+  .dash { color: #c8cfc5; }
+  .pill { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill.Paid { background: #dff1e6; color: var(--ok); }
+  .pill.Partially { background: #fdf3e1; color: var(--warn); }
+  .pill.New { background: #e7e9e4; color: var(--muted); }
+  .pill.Cancelled { background: #fbe9e7; color: var(--danger); }
+  tr.cancelled td { opacity: .6; }
+
+  /* one card per child */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+  .kid { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; break-inside: avoid; }
+  .kid-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 9px; margin-bottom: 10px; }
+  .kid-head b { font-size: 1.02rem; }
+  .kid-head .rw { color: var(--muted); font-size: .76rem; margin-inline-start: auto; }
+  .qa { margin: 0; }
+  .qa > div { display: grid; grid-template-columns: 42% 1fr; gap: 10px; padding: 4px 0; border-bottom: 1px dotted #eceee8; }
+  .qa > div:last-child { border-bottom: 0; }
+  .qa dt { color: var(--muted); font-size: .8rem; }
+  .qa dd { font-size: .88rem; white-space: pre-line; word-break: break-word; }
+  .kid-foot { margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--muted); font-size: .79rem; display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .empty { padding: 30px; text-align: center; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 12px; }
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 20px; border-radius: 8px; display: none; z-index: 50; max-width: 90vw; }
+  #toast.err { background: var(--danger); }
+
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print {
+    body { background: #fff; font-size: 9.5px; }
+    .top, .toolbar, details.cols, .no-print, #toast { display: none !important; }
+    main { padding: 0; max-width: none; }
+    .print-head { display: flex; }
+    .tbl-wrap { overflow: visible; border-color: #bbb; }
+    .sticky { position: static; }
+    th, td { padding: 4px 6px; }
+    tr { break-inside: avoid; }
+    .kid { border-color: #bbb; }
+    .cards { grid-template-columns: 1fr 1fr; }
+    .pill { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form class="login-box" id="loginForm">
+    <h1>Registrations</h1>
+    <label for="nm">Your name</label>
+    <input id="nm" type="text" autocomplete="username" style="margin-bottom:12px">
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <button class="btn" type="submit" id="loginBtn">Sign in</button>
+    <p id="loginErr" role="alert"></p>
+  </form>
+</div>
+
+<div id="app">
+  <div class="top"><div class="top-in">
+    <img id="logo" alt="">
+    <h1>Registrations</h1>
+    <select id="formSel" aria-label="Camp or event"></select>
+    <span id="me" class="muted" style="font-size:.82rem"></span>
+    <div class="right">
+      <button class="btn ghost" type="button" id="langBtn" title="Show the questions in Arabic or English">عربي</button>
+      <a class="btn ghost" id="payLink" href="payments.html">Payments</a>
+      <button class="btn ghost" type="button" id="csvBtn">Download</button>
+      <button class="btn ghost" type="button" id="refreshBtn">Refresh</button>
+      <button class="btn" type="button" id="printBtn">Print</button>
+      <button class="btn ghost" type="button" id="logoutBtn">Sign out</button>
+    </div>
+  </div></div>
+  <main id="report"><p class="empty">Choose a camp or event.</p></main>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="config.js"></script>
+<script>
+const API = window.RESHAPE_API || "";
+let PW = "", NAME = "", USER = "", FORMS = [], BRAND = {}, CUR = "EGP", R = null;   // R = { form, rows }
+let ADMIN = false;
+let search = "", filter = "active", view = "table", qLang = "en";
+let shown = null;        // ids of the columns to show, in order; null = work out the defaults
+
+// Columns that are not questions: the payment side, available but mostly off by default
+const EXTRAS = [
+  ["__received", "Received", 1],
+  ["__status", "Status", 1],
+  ["__offer", "Offer", 0],
+  ["__price", "Price", 0],
+  ["__paid", "Paid", 0],
+  ["__remaining", "Remaining", 0],
+  ["__due", "Due date", 0],
+  ["__method", "Payment method", 0],
+  ["__resp", "Responsible", 0],
+  ["__notes", "Admin notes", 0]
+];
+const EXTRA_IDS = EXTRAS.map(x => x[0]);
+
+function esc(v) { return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+function en(o) { return (o && (o.en || o.ar)) || ""; }
+function lbl(o) { return (o && (qLang === "ar" ? (o.ar || o.en) : (o.en || o.ar))) || ""; }
+function money(n) { return n == null ? "" : Math.round(n).toLocaleString("en-US") + " " + CUR; }
+let tt;
+function toast(m, k) { const t = document.getElementById("toast"); t.textContent = m; t.className = k || ""; t.style.display = "block"; clearTimeout(tt); tt = setTimeout(() => t.style.display = "none", k === "err" ? 7000 : 3000); }
+async function post(body) { body.name = NAME; const r = await fetch(API, { method: "POST", body: JSON.stringify(body) }); return r.json(); }
+
+const isActive = r => r.status !== "Cancelled";
+const statusClass = s => s === "Partially paid" ? "Partially" : s;
+const statusText = s => s === "New" ? "Not paid yet" : s;
+
+// ---------- the questions of this form ----------
+function questions() { return (R.form.fields || []); }   // the server already leaves out section titles
+function fieldById() { const m = {}; questions().forEach(f => m[f.id] = f); return m; }
+function childField() {
+  const fs = questions().filter(f => !f.hidden);
+  const texts = fs.filter(f => f.type === "text");
+  return texts.find(f => /child|kid|طفل/i.test(en(f.label))) || texts[0] || null;
+}
+function phoneField() { return questions().find(f => f.type === "phone" && !f.hidden) || null; }
+function childName(r) { const f = childField(); return (f && r.answers[f.id]) || ""; }
+
+// ---------- which columns to show ----------
+function colKey() { return "reshape_cols_" + (R.form.id || ""); }
+function defaultCols() {
+  const child = childField();
+  const withData = id => R.rows.some(r => (r.answers[id] || "") !== "");
+  const qs = questions()
+    .filter(f => f !== child)                        // the name is always the first column
+    .filter(f => !f.hidden || withData(f.id))        // a hidden question only if older answers used it
+    .map(f => f.id);
+  return EXTRAS.filter(x => x[2]).map(x => x[0]).concat(qs);
+}
+function loadCols() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(colKey()) || "null"); } catch (e) {}
+  const known = EXTRA_IDS.concat(questions().map(f => f.id));
+  if (Array.isArray(saved)) {
+    const keep = saved.filter(id => known.indexOf(id) >= 0);
+    if (keep.length) { shown = keep; return; }
+  }
+  shown = defaultCols();
+}
+function saveCols() { try { localStorage.setItem(colKey(), JSON.stringify(shown)); } catch (e) {} }
+function allColIds() {   // every column that can be shown, in a sensible order
+  const child = childField();
+  return EXTRA_IDS.concat(questions().filter(f => f !== child).map(f => f.id));
+}
+function colLabel(id) {
+  const ex = EXTRAS.find(x => x[0] === id);
+  if (ex) return ex[1];
+  const f = fieldById()[id];
+  return f ? (lbl(f.label) || "Question") : id;
+}
+function cellValue(r, id) {
+  switch (id) {
+    case "__received": return r.received ? r.received.slice(0, 10) : "";
+    case "__status": return statusText(r.status);
+    case "__offer": return r.offer;
+    case "__price": return money(r.price);
+    case "__paid": return r.paid ? money(r.paid) : "";
+    case "__remaining": return r.remaining == null ? "" : money(r.remaining);
+    case "__due": return r.due;
+    case "__method": return r.method;
+    case "__resp": return r.responsible;
+    case "__notes": return r.notes;
+    default: return r.answers[id] || "";
+  }
+}
+// long answers get a wider, wrapping cell
+function isLong(id) {
+  if (id === "__notes") return true;
+  const f = fieldById()[id];
+  return !!f && f.type === "textarea";
+}
+
+// ---------- rows on screen ----------
+function shownRows() {
+  const q = search.trim().toLowerCase();
+  return R.rows.filter(r => {
+    if (filter === "active" && !isActive(r)) return false;
+    if (filter === "cancelled" && isActive(r)) return false;
+    if (!q) return true;
+    const hay = Object.keys(r.answers).map(k => r.answers[k]).concat([r.offer, r.notes, r.responsible]).join(" ").toLowerCase();
+    return hay.indexOf(q) >= 0;
+  });
+}
+
+// ---------- drawing ----------
+function render() {
+  const main = document.getElementById("report");
+  if (!R) { main.innerHTML = '<p class="empty">Choose a camp or event.</p>'; return; }
+  if (!shown) loadCols();
+  const now = new Date();
+  const list = shownRows();
+
+  main.innerHTML =
+    '<div class="print-head"><img src="' + esc(BRAND.logo || "") + '" alt=""><div><h2>' + esc(en(R.form.title)) + "</h2><p>Registrations, " +
+      now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) + " · " + list.length + " of " + R.rows.length + "</p></div></div>" +
+    colsPanel() +
+    '<div class="toolbar">' +
+      '<input type="search" id="search" placeholder="Search in every answer" value="' + esc(search) + '">' +
+      [["active", "Not cancelled"], ["all", "All"], ["cancelled", "Cancelled"]]
+        .map(([v, l]) => '<button class="chip" type="button" data-filter="' + v + '" aria-pressed="' + (filter === v) + '">' + l + "</button>").join("") +
+      '<span style="width:14px"></span>' +
+      [["table", "Table"], ["cards", "One card each"]]
+        .map(([v, l]) => '<button class="chip" type="button" data-view="' + v + '" aria-pressed="' + (view === v) + '">' + l + "</button>").join("") +
+      '<span class="count">' + list.length + (list.length === 1 ? " registration" : " registrations") +
+        (list.length !== R.rows.length ? ' <span class="muted">of ' + R.rows.length + "</span>" : "") + "</span>" +
+    "</div>" +
+    (list.length ? (view === "table" ? tableHtml(list) : cardsHtml(list))
+                 : '<p class="empty">' + (R.rows.length ? "Nothing matches." : "No registrations yet. Answers appear here as soon as parents send the form.") + "</p>");
+}
+
+function colsPanel() {
+  const ids = allColIds(), byId = fieldById();
+  const qIds = ids.filter(id => EXTRA_IDS.indexOf(id) < 0);
+  const box = (id, extraNote) => {
+    const f = byId[id];
+    const note = extraNote || (f && f.hidden ? "hidden question" : (f && f.showIf && f.showIf.field ? "only for some children" : ""));
+    return '<label><input type="checkbox" data-col="' + esc(id) + '"' + (shown.indexOf(id) >= 0 ? " checked" : "") + ">" +
+      "<span>" + esc(colLabel(id)) + (note ? ' <span class="tagx">(' + esc(note) + ")</span>" : "") + "</span></label>";
+  };
+  return '<details class="cols no-print"><summary>Which questions to show  <span class="muted" style="font-weight:400">(' +
+    shown.length + " of " + ids.length + ')</span></summary><div class="cols-body">' +
+    '<p class="muted" style="font-size:.82rem">The child\'s name is always the first column. Your choice is remembered on this device for this camp.</p>' +
+    '<div class="cols-head">Questions from the form</div><div class="cols-grid">' + qIds.map(id => box(id)).join("") + "</div>" +
+    '<div class="cols-head">Payment details</div><div class="cols-grid">' + EXTRA_IDS.map(id => box(id, "")).join("") + "</div>" +
+    '<div class="cols-acts"><button type="button" data-cols="all">Show everything</button>' +
+    '<button type="button" data-cols="questions">Questions only</button>' +
+    '<button type="button" data-cols="reset">Back to the usual</button></div></div></details>';
+}
+
+function tableHtml(list) {
+  const child = childField(), ph = phoneField();
+  let h = '<div class="tbl-wrap"><table><thead><tr>' +
+    '<th class="sticky">' + esc(child ? colLabel(child.id) : "Child") + "</th>" +
+    '<th class="no-print">Row</th>' +
+    shown.map(id => '<th class="q">' + esc(colLabel(id)) + "</th>").join("") +
+    "</tr></thead><tbody>";
+  h += list.map(r => {
+    return '<tr class="' + (isActive(r) ? "" : "cancelled") + '">' +
+      '<td class="sticky name">' + (childName(r) ? esc(childName(r)) : '<span class="dash">—</span>') + "</td>" +
+      '<td class="rownum no-print" title="the row in the sheet">' + r.row + "</td>" +
+      shown.map(id => {
+        if (id === "__status") return "<td><span class=\"pill " + statusClass(r.status) + '">' + esc(statusText(r.status)) + "</span></td>";
+        const v = cellValue(r, id);
+        if (!v) return '<td><span class="dash">—</span></td>';
+        const f = fieldById()[id];
+        const dir = (f && f.type === "phone") || (ph && id === ph.id) ? ' dir="ltr"' : "";
+        return "<td" + (isLong(id) ? ' class="wrap"' : "") + dir + ">" + esc(v) + "</td>";
+      }).join("") + "</tr>";
+  }).join("");
+  return h + "</tbody></table></div>";
+}
+
+function cardsHtml(list) {
+  const child = childField();
+  return '<div class="cards">' + list.map(r => {
+    const lines = shown.filter(id => EXTRA_IDS.indexOf(id) < 0).map(id => {
+      const v = cellValue(r, id);
+      if (!v) return "";
+      const f = fieldById()[id];
+      return "<div><dt>" + esc(colLabel(id)) + "</dt><dd" + (f && f.type === "phone" ? ' dir="ltr"' : "") + ">" + esc(v) + "</dd></div>";
+    }).filter(Boolean).join("");
+    const foot = [];
+    if (r.received) foot.push("Sent " + esc(r.received.slice(0, 10)));
+    if (r.offer) foot.push(esc(r.offer));
+    if (r.paid) foot.push("paid " + esc(money(r.paid)));
+    if (r.remaining > 0) foot.push("owes " + esc(money(r.remaining)));
+    if (r.responsible) foot.push("with " + esc(r.responsible));
+    return '<article class="kid">' +
+      '<div class="kid-head"><b>' + (childName(r) ? esc(childName(r)) : "No name") + "</b>" +
+        '<span class="pill ' + statusClass(r.status) + '">' + esc(statusText(r.status)) + "</span>" +
+        '<span class="rw">row ' + r.row + "</span></div>" +
+      (lines ? '<dl class="qa">' + lines + "</dl>" : '<p class="muted">No answers in the questions you chose to show.</p>') +
+      (foot.length ? '<div class="kid-foot">' + foot.join(" · ") + "</div>" : "") +
+      "</article>";
+  }).join("") + "</div>";
+}
+
+// ---------- download as a spreadsheet file ----------
+function csvCell(v) {
+  const s = String(v == null ? "" : v);
+  return /[",\n\r;]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadCsv() {
+  if (!R || !R.rows.length) { toast("There is nothing to download yet."); return; }
+  const child = childField(), list = shownRows();
+  const head = [child ? colLabel(child.id) : "Child", "Sheet row"].concat(shown.map(colLabel));
+  const body = list.map(r => [childName(r), r.row].concat(shown.map(id => cellValue(r, id))));
+  const text = "﻿" + [head].concat(body).map(row => row.map(csvCell).join(",")).join("\r\n");
+  const name = (en(R.form.title) || "registrations").replace(/[^\w؀-ۿ \-]/g, "").trim().slice(0, 60);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  a.download = name + " - " + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast("Downloaded " + list.length + (list.length === 1 ? " registration." : " registrations."));
+}
+
+// ---------- events ----------
+document.addEventListener("input", e => { if (e.target.id === "search") { search = e.target.value; render(); } });
+document.addEventListener("click", e => {
+  const fl = e.target.closest("[data-filter]");
+  if (fl) { filter = fl.dataset.filter; render(); return; }
+  const vw = e.target.closest("[data-view]");
+  if (vw) { view = vw.dataset.view; render(); return; }
+  const act = e.target.closest("[data-cols]");
+  if (act) {
+    const ids = allColIds();
+    if (act.dataset.cols === "all") shown = ids.slice();
+    else if (act.dataset.cols === "questions") shown = ids.filter(id => EXTRA_IDS.indexOf(id) < 0);
+    else shown = defaultCols();
+    saveCols(); render();
+    const d = document.querySelector("details.cols"); if (d) d.open = true;
+  }
+});
+document.addEventListener("change", e => {
+  const cb = e.target.closest("[data-col]");
+  if (!cb) return;
+  const id = cb.dataset.col, ids = allColIds();
+  shown = cb.checked ? ids.filter(x => shown.indexOf(x) >= 0 || x === id) : shown.filter(x => x !== id);
+  saveCols();
+  const d = document.querySelector("details.cols"), open = d && d.open;
+  render();
+  const d2 = document.querySelector("details.cols"); if (d2) d2.open = open;
+});
+
+document.getElementById("langBtn").addEventListener("click", () => {
+  qLang = qLang === "en" ? "ar" : "en";
+  document.getElementById("langBtn").textContent = qLang === "en" ? "عربي" : "English";
+  if (R) render();
+});
+document.getElementById("csvBtn").addEventListener("click", downloadCsv);
+document.getElementById("printBtn").addEventListener("click", () => window.print());
+
+// ---------- loading ----------
+async function loadReport(id) {
+  const pay = document.getElementById("payLink");
+  pay.href = "payments.html" + (id ? "?f=" + encodeURIComponent(id) : "");
+  if (!id) { R = null; shown = null; render(); return; }
+  document.getElementById("report").innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const j = await post({ action: "report", password: PW, id: id });
+    if (!j.ok) throw new Error(j.error);
+    R = j; shown = null; search = ""; render();
+    const u = new URL(location.href); u.searchParams.set("f", id); history.replaceState(null, "", u);
+  } catch (e) {
+    document.getElementById("report").innerHTML = '<p class="empty">' + esc(e instanceof TypeError ? "Can't reach the server." : e.message) + "</p>";
+  }
+}
+
+async function login(pw) {
+  const btn = document.getElementById("loginBtn"), err = document.getElementById("loginErr");
+  btn.disabled = true; btn.textContent = "Signing in…"; err.textContent = "";
+  try {
+    NAME = document.getElementById("nm").value.trim() || NAME;
+    const j = await post({ action: "staffLogin", password: pw });
+    if (!j.ok) throw new Error(/Unknown action/.test(j.error || "") ? "The Apps Script is an older version. Ask the admin to deploy the new version." : j.error);
+    PW = pw; USER = j.user || NAME; FORMS = j.forms || []; ADMIN = !!j.admin;
+    document.getElementById("me").textContent = "Signed in as " + USER + (ADMIN ? " (admin)" : "");
+    BRAND = j.brand || {}; CUR = (j.currency && j.currency.en) || "EGP";
+    try { sessionStorage.setItem("reshape_staff_pw", pw); sessionStorage.setItem("reshape_staff_name", NAME); } catch (e) {}
+    if (/^#[0-9a-f]{6}$/i.test(BRAND.primary || "")) document.documentElement.style.setProperty("--primary", BRAND.primary);
+    if (BRAND.logo) document.getElementById("logo").src = BRAND.logo;
+    const sel = document.getElementById("formSel");
+    sel.innerHTML = '<option value="">Choose a camp or event…</option>' + FORMS.map(f => '<option value="' + esc(f.id) + '">' + esc(en(f.title)) + (f.status === "closed" ? " (closed)" : "") + "</option>").join("");
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    const want = new URLSearchParams(location.search).get("f");
+    const pick = FORMS.find(f => f.id === want) ? want : (FORMS.length === 1 ? FORMS[0].id : "");
+    sel.value = pick;
+    if (!FORMS.length) document.getElementById("report").innerHTML = '<p class="empty">No forms have answers sheets yet. A form gets one when it is saved as Open in the admin page.</p>';
+    else loadReport(pick);
+  } catch (e) {
+    try { sessionStorage.removeItem("reshape_staff_pw"); } catch (x) {}
+    if (/Wrong/.test(e.message || "")) e.message = "Wrong name or password.";
+    err.textContent = e instanceof TypeError ? "Can't reach the server. Check config.js and your internet." : e.message;
+  } finally { btn.disabled = false; btn.textContent = "Sign in"; }
+}
+
+document.getElementById("loginForm").addEventListener("submit", e => { e.preventDefault(); login(document.getElementById("pw").value); });
+document.getElementById("formSel").addEventListener("change", e => { filter = "active"; loadReport(e.target.value); });
+document.getElementById("refreshBtn").addEventListener("click", () => loadReport(document.getElementById("formSel").value));
+document.getElementById("logoutBtn").addEventListener("click", () => { try { sessionStorage.removeItem("reshape_staff_pw"); } catch (e) {} location.href = location.pathname; });
+
+(function start() {
+  if (!API || API.indexOf("PASTE_") === 0) {
+    document.getElementById("loginErr").textContent = "Paste your Apps Script web app URL in config.js first.";
+    document.getElementById("loginBtn").disabled = true; return;
+  }
+  let saved = "";
+  try { saved = sessionStorage.getItem("reshape_staff_pw") || ""; NAME = sessionStorage.getItem("reshape_staff_name") || ""; } catch (e) {}
+  if (saved) login(saved);
+})();
+</script>
+</body>
+</html>
